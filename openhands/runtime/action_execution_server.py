@@ -25,6 +25,7 @@ from fastapi.security import APIKeyHeader
 from openhands_aci.editor.editor import OHEditor
 from openhands_aci.editor.exceptions import ToolError
 from openhands_aci.editor.results import ToolResult
+from openhands_aci.tools.code_search_tool import code_search_tool
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -36,6 +37,7 @@ from openhands.events.action import (
     BrowseInteractiveAction,
     BrowseURLAction,
     CmdRunAction,
+    CodeSearchAction,
     FileEditAction,
     FileReadAction,
     FileWriteAction,
@@ -44,6 +46,7 @@ from openhands.events.action import (
 from openhands.events.event import FileEditSource, FileReadSource
 from openhands.events.observation import (
     CmdOutputObservation,
+    CodeSearchObservation,
     ErrorObservation,
     FileEditObservation,
     FileReadObservation,
@@ -457,6 +460,60 @@ class ActionExecutor:
 
     async def browse_interactive(self, action: BrowseInteractiveAction) -> Observation:
         return await browse(action, self.browser)
+        
+    async def code_search(self, action: CodeSearchAction) -> Observation:
+        """处理代码搜索动作。
+        
+        使用 openhands_aci 中的 code_search_tool 函数执行代码搜索。
+        
+        Args:
+            action: 代码搜索动作。
+            
+        Returns:
+            代码搜索观察或错误观察。
+        """
+        assert self.bash_session is not None
+        working_dir = self.bash_session.cwd
+        
+        # 如果没有指定仓库路径，使用当前工作目录
+        repo_path = action.repo_path or working_dir
+        
+        # 如果没有指定保存目录，使用默认目录
+        save_dir = action.save_dir
+        if save_dir is None:
+            save_dir = os.path.join(repo_path, '.code_search_index')
+        
+        try:
+            # 调用 code_search_tool 函数执行代码搜索
+            result = code_search_tool(
+                query=action.query,
+                repo_path=repo_path,
+                save_dir=save_dir,
+                extensions=action.extensions,
+                k=action.k,
+                remove_duplicates=action.remove_duplicates,
+                min_score=action.min_score
+            )
+            
+            # 处理错误情况
+            if result["status"] == "error":
+                return ErrorObservation(
+                    error=result["message"],
+                    cause=action.id
+                )
+            
+            # 返回搜索结果
+            return CodeSearchObservation(
+                results=result["results"],
+                cause=action.id
+            )
+        except Exception as e:
+            # 记录异常并返回错误观察
+            logger.exception("代码搜索过程中出错")
+            return ErrorObservation(
+                error=f"代码搜索过程中出错: {str(e)}",
+                cause=action.id
+            )
 
     def close(self):
         self.memory_monitor.stop_monitoring()

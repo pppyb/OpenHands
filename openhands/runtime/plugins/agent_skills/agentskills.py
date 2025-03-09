@@ -29,3 +29,8 @@ for func_name in __all__:
 from openhands.runtime.plugins.agent_skills.file_editor import file_editor  # noqa: E402
 
 __all__ += ['file_editor']
+
+# Add code_search_tool (a function)
+from openhands.runtime.plugins.agent_skills.code_search.tool import code_search_tool  # noqa: E402
+
+__all__ += ['code_search_tool']

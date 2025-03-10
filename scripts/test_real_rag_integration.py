@@ -79,7 +79,7 @@ class RagIntegrationTest:
         agent_config = AgentConfig(
             # Use only parameters that are defined in AgentConfig
             codeact_enable_jupyter=True,
-            codeact_enable_browsing=False,
+            codeact_enable_browsing=True,  # Enable browsing to ensure browser tool is available
             codeact_enable_llm_editor=True,
             # We'll set llm_config separately in AgentController
         )
@@ -88,11 +88,13 @@ class RagIntegrationTest:
         # This is a simplified version for testing purposes
         from openhands.agenthub.codeact_agent.codeact_agent import CodeActAgent
         from openhands.llm.llm import LLM
+        from openhands.events.action.code_search import CodeSearchAction
         
         # Create LLM config
         llm_config = LLMConfig(
             model=self.model,
-            temperature=0.2
+            temperature=0.2,
+            function_calling=True  # Enable function calling
         )
         
         # Create LLM with config
@@ -100,6 +102,61 @@ class RagIntegrationTest:
         
         # Create Agent
         agent = CodeActAgent(llm=llm, config=agent_config)
+        
+        # Get the default tools using the function_calling module
+        from openhands.agenthub.codeact_agent.function_calling import get_tools
+        
+        # Get the default tools based on the agent config
+        tools = get_tools(
+            codeact_enable_browsing=agent_config.codeact_enable_browsing,
+            codeact_enable_llm_editor=agent_config.codeact_enable_llm_editor,
+            codeact_enable_jupyter=agent_config.codeact_enable_jupyter
+        )
+        
+        # Define the code search tool
+        from litellm import ChatCompletionToolParam
+        
+        code_search_tool = ChatCompletionToolParam(
+            type="function",
+            function={
+                "name": "code_search",
+                "description": "Search for relevant code in a codebase using semantic search.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Natural language query to search for code."
+                        },
+                        "repo_path": {
+                            "type": "string",
+                            "description": "Path to the Git repository to search."
+                        },
+                        "extensions": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "List of file extensions to include (e.g. [\".py\", \".js\"])."
+                        },
+                        "k": {
+                            "type": "integer",
+                            "description": "Number of results to return."
+                        },
+                        "thought": {
+                            "type": "string",
+                            "description": "Reasoning behind the search."
+                        }
+                    },
+                    "required": ["query"]
+                }
+            }
+        )
+        
+        # Add the code search tool to the tools list
+        tools.append(code_search_tool)
+        
+        # Set the tools on the LLM
+        # This is normally done by the agent system, but we need to do it manually for testing
+        llm.tools = tools
         
         # Initialize agent controller with correct parameters
         self.agent_controller = AgentController(

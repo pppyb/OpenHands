@@ -91,12 +91,25 @@ class RagIntegrationTest:
         from openhands.events.action.code_search import CodeSearchAction
         
         # Create LLM config
+        # Check if we're in mock mode
+        mock_mode = os.environ.get('OPENHANDS_TEST_MOCK_MODE') == 'true'
+        
         # Check if OPENAI_API_KEY is set
         api_key = os.environ.get('OPENAI_API_KEY')
         
-        # Create LLM config with API key if available
-        if api_key:
+        # Create LLM config
+        if mock_mode:
+            # In mock mode, we don't need a real API key
+            logger.info("Using mock configuration for LLM")
+            llm_config = LLMConfig(
+                model=self.model,
+                temperature=0.2,
+                native_tool_calling=True  # Enable native tool calling (function calling)
+            )
+        elif api_key:
+            # If API key is available, use it
             from pydantic import SecretStr
+            logger.info(f"Using provided API key with model {self.model}")
             llm_config = LLMConfig(
                 model=self.model,
                 temperature=0.2,
@@ -104,10 +117,14 @@ class RagIntegrationTest:
                 api_key=SecretStr(api_key)  # Set API key
             )
         else:
-            # If no API key, use a model that doesn't require one
-            logger.warning("No OpenAI API key provided. Using a local model for testing.")
+            # No API key and not in mock mode - this will likely fail
+            logger.warning("No API key provided and not in mock mode.")
+            logger.warning("This will likely fail for OpenAI models.")
+            logger.warning("Run with --api_key YOUR_API_KEY or --mock flag.")
+            
+            # Create config without API key - will use environment variables if available
             llm_config = LLMConfig(
-                model="claude-3-5-sonnet-20241022",  # Default model that might not require API key
+                model=self.model,
                 temperature=0.2,
                 native_tool_calling=True  # Enable native tool calling (function calling)
             )
@@ -417,8 +434,10 @@ async def run_test_scenarios(repo_path: str, model: str = "gpt-3.5-turbo", outpu
     
     # If no API key and using an OpenAI model, warn the user
     if not has_api_key and ('gpt' in model.lower() or 'openai' in model.lower()):
-        logger.warning(f"No OpenAI API key provided for model {model}. Test may fail.")
+        logger.warning(f"No OpenAI API key provided for model {model}.")
+        logger.warning("You must provide an API key to use OpenAI models.")
         logger.warning("Run with --api_key YOUR_API_KEY or set OPENAI_API_KEY environment variable.")
+        logger.warning("Alternatively, use --mock flag to run in mock mode without real LLM calls.")
     
     # Initialize the test
     test = RagIntegrationTest(repo_path=repo_path, model=model)
@@ -503,10 +522,6 @@ async def main():
     if args.mock:
         os.environ['OPENHANDS_TEST_MOCK_MODE'] = 'true'
         logger.info("Running in mock mode - no real LLM calls will be made")
-        
-        # Use a fake API key in mock mode
-        if not os.environ.get('OPENAI_API_KEY'):
-            os.environ['OPENAI_API_KEY'] = 'sk-mock-key-for-testing'
     
     # Run the test scenarios
     await run_test_scenarios(

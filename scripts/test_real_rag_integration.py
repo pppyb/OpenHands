@@ -31,6 +31,7 @@ from openhands.events.observation import Observation
 from openhands.events.observation.code_search import CodeSearchObservation
 from openhands.core.schema.action import ActionType
 from openhands.core.schema.observation import ObservationType
+from openhands.storage.local import LocalFileStore
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -56,9 +57,12 @@ class RagIntegrationTest:
         self.temp_dir = tempfile.TemporaryDirectory()
         self.file_store_path = self.temp_dir.name
         
+        # Create a LocalFileStore
+        self.file_store = LocalFileStore(root=self.file_store_path)
+        
         # Initialize EventStream with required parameters
         self.session_id = str(uuid.uuid4())
-        self.event_stream = EventStream(sid=self.session_id, file_store=self.file_store_path)
+        self.event_stream = EventStream(sid=self.session_id, file_store=self.file_store)
         
         self.actions = []
         self.observations = []

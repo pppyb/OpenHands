@@ -14,6 +14,7 @@ class AgentConfig(BaseModel):
         codeact_enable_browsing: Whether browsing delegate is enabled in the action space. Default is False. Only works with function calling.
         codeact_enable_llm_editor: Whether LLM editor is enabled in the action space. Default is False. Only works with function calling.
         codeact_enable_jupyter: Whether Jupyter is enabled in the action space. Default is False.
+        codeact_enable_code_search: Whether code search is enabled in the action space. Default is True. Only works with function calling.
         memory_enabled: Whether long-term memory (embeddings) is enabled.
         memory_max_threads: The maximum number of threads indexing at the same time for embeddings. (deprecated)
         llm_config: The name of the llm config to use. If specified, this will override global llm config.
@@ -30,6 +31,7 @@ class AgentConfig(BaseModel):
     codeact_enable_browsing: bool = Field(default=True)
     codeact_enable_llm_editor: bool = Field(default=False)
     codeact_enable_jupyter: bool = Field(default=True)
+    codeact_enable_code_search: bool = Field(default=True)
     enable_prompt_extensions: bool = Field(default=True)
     disabled_microagents: list[str] = Field(default_factory=list)
     enable_history_truncation: bool = Field(default=True)

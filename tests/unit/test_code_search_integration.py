@@ -97,6 +97,7 @@ function searchCode(query, repoPath) {
         ]
         
         observation = CodeSearchObservation(results=results)
+        # _content is initialized as None, no need to pass it explicitly
         
         # Verify observation properties
         self.assertEqual(observation.results, results)
@@ -121,8 +122,9 @@ function searchCode(query, repoPath) {
         # Import here to avoid circular imports
         from openhands.runtime.action_execution_server import ActionExecutor
         
-        # Create a mock ActionExecutor
+        # Create a mock ActionExecutor with necessary attributes
         executor = MagicMock(spec=ActionExecutor)
+        executor.bash_session = MagicMock()
         executor.bash_session.cwd = self.repo_path
         
         # Create a code search action

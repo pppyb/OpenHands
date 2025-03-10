@@ -81,6 +81,7 @@ class RagIntegrationTest:
             codeact_enable_jupyter=True,
             codeact_enable_browsing=True,  # Enable browsing to ensure browser tool is available
             codeact_enable_llm_editor=True,
+            codeact_enable_code_search=True,  # Explicitly enable code search
             # We'll set llm_config separately in AgentController
         )
         
@@ -142,7 +143,8 @@ class RagIntegrationTest:
         tools = get_tools(
             codeact_enable_browsing=agent_config.codeact_enable_browsing,
             codeact_enable_llm_editor=agent_config.codeact_enable_llm_editor,
-            codeact_enable_jupyter=agent_config.codeact_enable_jupyter
+            codeact_enable_jupyter=agent_config.codeact_enable_jupyter,
+            codeact_enable_code_search=agent_config.codeact_enable_code_search  # Pass code search config
         )
         
         # Define the code search tool

@@ -13,6 +13,8 @@ import json
 import argparse
 import logging
 import asyncio
+import uuid
+import tempfile
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
@@ -49,7 +51,15 @@ class RagIntegrationTest:
         self.repo_path = os.path.abspath(repo_path)
         self.model = model
         self.agent_controller = None
-        self.event_stream = EventStream()
+        
+        # Create a temporary directory for file storage
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.file_store_path = self.temp_dir.name
+        
+        # Initialize EventStream with required parameters
+        self.session_id = str(uuid.uuid4())
+        self.event_stream = EventStream(sid=self.session_id, file_store=self.file_store_path)
+        
         self.actions = []
         self.observations = []
         
@@ -79,12 +89,14 @@ class RagIntegrationTest:
         
         # Initialize agent controller
         self.agent_controller = AgentController(
+            sid=self.session_id,
             work_dir=self.repo_path,
             model_name=self.model,
             agent_type="codeact",
             event_stream=self.event_stream,
             max_iterations=20,
             headless_mode=True,
+            agent_config=agent_config
         )
         
         # Subscribe to events
@@ -248,6 +260,8 @@ async def run_test_scenarios(repo_path: str, model: str = "gpt-4", output_file: 
     # Initialize the test
     test = RagIntegrationTest(repo_path=repo_path, model=model)
     
+    try:
+    
     # Define test scenarios - tasks that would benefit from code search
     test_scenarios = [
         {
@@ -296,6 +310,11 @@ async def run_test_scenarios(repo_path: str, model: str = "gpt-4", output_file: 
         logger.info(f"Test results saved to {output_file}")
     
     return results
+    finally:
+        # Clean up temporary directory
+        if hasattr(test, 'temp_dir'):
+            test.temp_dir.cleanup()
+            logger.info("Cleaned up temporary directory")
 
 
 async def main():

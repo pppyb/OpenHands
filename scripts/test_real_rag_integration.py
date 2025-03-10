@@ -75,32 +75,34 @@ class RagIntegrationTest:
         """
         logger.info(f"Initializing agent controller with repository: {self.repo_path}")
         
-        # Create LLM config
-        llm_config = LLMConfig(
-            model=self.model,
-            temperature=0.2,
-        )
-        
-        # Create agent config
+        # Create agent config with valid parameters
         agent_config = AgentConfig(
-            agent_type="codeact",
-            work_dir=self.repo_path,
-            llm=llm_config,
+            # Use only parameters that are defined in AgentConfig
             codeact_enable_jupyter=True,
             codeact_enable_browsing=False,
             codeact_enable_llm_editor=True,
+            # We'll set llm_config separately in AgentController
         )
         
-        # Initialize agent controller
+        # We need to create an Agent instance first
+        # This is a simplified version for testing purposes
+        from openhands.agenthub.codeact_agent.codeact_agent import CodeActAgent
+        from openhands.llm.llm import LLM
+        
+        # Create LLM
+        llm = LLM(model=self.model)
+        
+        # Create Agent
+        agent = CodeActAgent(llm=llm, config=agent_config)
+        
+        # Initialize agent controller with correct parameters
         self.agent_controller = AgentController(
             sid=self.session_id,
-            work_dir=self.repo_path,
-            model_name=self.model,
-            agent_type="codeact",
             event_stream=self.event_stream,
+            agent=agent,
             max_iterations=20,
             headless_mode=True,
-            agent_config=agent_config
+            confirmation_mode=False
         )
         
         # Subscribe to events

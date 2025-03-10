@@ -94,7 +94,7 @@ class RagIntegrationTest:
         llm_config = LLMConfig(
             model=self.model,
             temperature=0.2,
-            function_calling=True  # Enable function calling
+            native_tool_calling=True  # Enable native tool calling (function calling)
         )
         
         # Create LLM with config

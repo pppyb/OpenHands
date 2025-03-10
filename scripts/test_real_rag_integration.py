@@ -76,14 +76,26 @@ class RagIntegrationTest:
         logger.info(f"Initializing agent controller with repository: {self.repo_path}")
         
         # Create agent config with valid parameters
-        agent_config = AgentConfig(
-            # Use only parameters that are defined in AgentConfig
-            codeact_enable_jupyter=True,
-            codeact_enable_browsing=True,  # Enable browsing to ensure browser tool is available
-            codeact_enable_llm_editor=True,
-            codeact_enable_code_search=True,  # Explicitly enable code search
-            # We'll set llm_config separately in AgentController
-        )
+        try:
+            # Try to create config with code search enabled
+            agent_config = AgentConfig(
+                # Use only parameters that are defined in AgentConfig
+                codeact_enable_jupyter=True,
+                codeact_enable_browsing=True,  # Enable browsing to ensure browser tool is available
+                codeact_enable_llm_editor=True,
+                codeact_enable_code_search=True,  # Explicitly enable code search
+                # We'll set llm_config separately in AgentController
+            )
+        except Exception as e:
+            # If codeact_enable_code_search is not supported, create config without it
+            logger.warning(f"Could not create AgentConfig with code_search: {e}")
+            agent_config = AgentConfig(
+                # Use only parameters that are defined in AgentConfig
+                codeact_enable_jupyter=True,
+                codeact_enable_browsing=True,
+                codeact_enable_llm_editor=True,
+                # We'll set llm_config separately in AgentController
+            )
         
         # We need to create an Agent instance first
         # This is a simplified version for testing purposes
@@ -140,12 +152,22 @@ class RagIntegrationTest:
         from openhands.agenthub.codeact_agent.function_calling import get_tools
         
         # Get the default tools based on the agent config
-        tools = get_tools(
-            codeact_enable_browsing=agent_config.codeact_enable_browsing,
-            codeact_enable_llm_editor=agent_config.codeact_enable_llm_editor,
-            codeact_enable_jupyter=agent_config.codeact_enable_jupyter,
-            codeact_enable_code_search=agent_config.codeact_enable_code_search  # Pass code search config
-        )
+        try:
+            # Try to call get_tools with code search parameter
+            tools = get_tools(
+                codeact_enable_browsing=agent_config.codeact_enable_browsing,
+                codeact_enable_llm_editor=agent_config.codeact_enable_llm_editor,
+                codeact_enable_jupyter=agent_config.codeact_enable_jupyter,
+                codeact_enable_code_search=getattr(agent_config, 'codeact_enable_code_search', True)  # Use getattr to handle missing attribute
+            )
+        except TypeError:
+            # If codeact_enable_code_search is not supported by get_tools
+            logger.warning("get_tools does not support codeact_enable_code_search parameter")
+            tools = get_tools(
+                codeact_enable_browsing=agent_config.codeact_enable_browsing,
+                codeact_enable_llm_editor=agent_config.codeact_enable_llm_editor,
+                codeact_enable_jupyter=agent_config.codeact_enable_jupyter
+            )
         
         # Define the code search tool
         from litellm import ChatCompletionToolParam

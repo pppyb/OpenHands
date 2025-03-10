@@ -261,55 +261,54 @@ async def run_test_scenarios(repo_path: str, model: str = "gpt-4", output_file: 
     test = RagIntegrationTest(repo_path=repo_path, model=model)
     
     try:
-    
-    # Define test scenarios - tasks that would benefit from code search
-    test_scenarios = [
-        {
-            "name": "Code Understanding",
-            "task": "Explain how the code search functionality works in this repository. "
-                    "What are the main components and how do they interact?"
-        },
-        {
-            "name": "Bug Investigation",
-            "task": "There seems to be an issue with the code search functionality when handling "
-                    "large repositories. Investigate the code to find potential bottlenecks or bugs."
-        },
-        {
-            "name": "Feature Implementation",
-            "task": "I want to add a new feature to filter code search results by file type. "
-                    "How would you implement this based on the existing code?"
-        }
-    ]
-    
-    # Run each test scenario
-    results = []
-    for scenario in test_scenarios:
-        logger.info(f"Running test scenario: {scenario['name']}")
+        # Define test scenarios - tasks that would benefit from code search
+        test_scenarios = [
+            {
+                "name": "Code Understanding",
+                "task": "Explain how the code search functionality works in this repository. "
+                        "What are the main components and how do they interact?"
+            },
+            {
+                "name": "Bug Investigation",
+                "task": "There seems to be an issue with the code search functionality when handling "
+                        "large repositories. Investigate the code to find potential bottlenecks or bugs."
+            },
+            {
+                "name": "Feature Implementation",
+                "task": "I want to add a new feature to filter code search results by file type. "
+                        "How would you implement this based on the existing code?"
+            }
+        ]
         
-        result = await test.run_task(scenario['task'])
-        detailed_report = test.get_detailed_report()
+        # Run each test scenario
+        results = []
+        for scenario in test_scenarios:
+            logger.info(f"Running test scenario: {scenario['name']}")
+            
+            result = await test.run_task(scenario['task'])
+            detailed_report = test.get_detailed_report()
+            
+            scenario_result = {
+                "scenario": scenario,
+                "result": result,
+                "detailed_report": detailed_report
+            }
+            
+            results.append(scenario_result)
+            
+            # Print the detailed report
+            print(f"\n{'='*80}")
+            print(f"Test Scenario: {scenario['name']}")
+            print(f"{'='*80}")
+            print(detailed_report)
         
-        scenario_result = {
-            "scenario": scenario,
-            "result": result,
-            "detailed_report": detailed_report
-        }
+        # Save results to file if specified
+        if output_file:
+            with open(output_file, 'w') as f:
+                json.dump(results, f, indent=2)
+            logger.info(f"Test results saved to {output_file}")
         
-        results.append(scenario_result)
-        
-        # Print the detailed report
-        print(f"\n{'='*80}")
-        print(f"Test Scenario: {scenario['name']}")
-        print(f"{'='*80}")
-        print(detailed_report)
-    
-    # Save results to file if specified
-    if output_file:
-        with open(output_file, 'w') as f:
-            json.dump(results, f, indent=2)
-        logger.info(f"Test results saved to {output_file}")
-    
-    return results
+        return results
     finally:
         # Clean up temporary directory
         if hasattr(test, 'temp_dir'):

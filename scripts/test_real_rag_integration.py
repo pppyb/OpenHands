@@ -277,19 +277,18 @@ class RagIntegrationTest:
                 }
             ]
             
-            # code_search_observation = CodeSearchObservation(results=code_search_results)
             # 生成内容
             content = "\n".join([
                 f"Result {i+1}: {result['file']} (Relevance score: {result['score']})" + 
                 "\n```\n" + result['content'] + "\n```\n"
                 for i, result in enumerate(code_search_results)
             ])
-
-            # 使用明确的内容创建观察对象
+            
+            # 创建观察对象
             code_search_observation = CodeSearchObservation(
                 results=code_search_results,
-                content=content  # 提供必需的 content 参数
-            )         
+                content=content
+            )
             # Add the observation to our list and the event stream
             self.observations.append(code_search_observation)
             self.event_stream.add_event(code_search_observation, EventSource.ENVIRONMENT)

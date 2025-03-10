@@ -37,6 +37,7 @@ from openhands.events.action import (
     IPythonRunCellAction,
     MessageAction,
 )
+from openhands.events.action.code_search import CodeSearchAction
 from openhands.events.event import FileEditSource, FileReadSource
 from openhands.events.tool import ToolCallMetadata
 
@@ -164,6 +165,24 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
             # ================================================
             elif tool_call.function.name == ThinkTool['function']['name']:
                 action = AgentThinkAction(thought=arguments.get('thought', ''))
+                
+            # ================================================
+            # CodeSearchTool
+            # ================================================
+            elif tool_call.function.name == CodeSearchTool['function']['name']:
+                if 'query' not in arguments:
+                    raise FunctionCallValidationError(
+                        f'Missing required argument "query" in tool call {tool_call.function.name}'
+                    )
+                
+                # Create a CodeSearchAction with the provided arguments
+                action = CodeSearchAction(
+                    query=arguments['query'],
+                    repo_path=arguments.get('repo_path'),
+                    extensions=arguments.get('extensions'),
+                    k=arguments.get('k', 5),
+                    thought=arguments.get('thought', '')
+                )
 
             # ================================================
             # CodeSearchTool
@@ -231,12 +250,54 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
     return actions
 
 
+# Define the code search tool
+CodeSearchTool = ChatCompletionToolParam(
+    type="function",
+    function={
+        "name": "code_search",
+        "description": "IMPORTANT: Use this tool to search for relevant code in the repository. This is the preferred way to find code related to your task.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Natural language query to search for code (e.g., 'how to send a message', 'file handling functions')."
+                },
+                "repo_path": {
+                    "type": "string",
+                    "description": "Path to the Git repository to search. Use the repository path provided in the task."
+                },
+                "extensions": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of file extensions to include (e.g. [\".py\", \".js\"]). Default is [\".py\"]."
+                },
+                "k": {
+                    "type": "integer",
+                    "description": "Number of results to return. Default is 5."
+                },
+                "thought": {
+                    "type": "string",
+                    "description": "Your reasoning for why this search will help with the task."
+                }
+            },
+            "required": ["query"]
+        }
+    }
+)
+
 def get_tools(
     codeact_enable_browsing: bool = False,
     codeact_enable_llm_editor: bool = False,
     codeact_enable_jupyter: bool = False,
+    codeact_enable_code_search: bool = True,  # Enable code search by default
 ) -> list[ChatCompletionToolParam]:
     tools = [CmdRunTool, ThinkTool, FinishTool]
+    
+    # Add code search tool first (if enabled) to make it more prominent
+    if codeact_enable_code_search:
+        tools.insert(0, CodeSearchTool)
+        
     if codeact_enable_browsing:
         tools.append(WebReadTool)
         tools.append(BrowserTool)

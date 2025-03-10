@@ -83,7 +83,7 @@ class ActionTypeSchema(BaseModel):
     """Send a PR to github."""
 
     CODE_SEARCH: str = Field(default='code_search')
-    """使用语义搜索在代码库中搜索相关代码。
+    """Search for relevant code in a codebase using semantic search.
     """
 
 

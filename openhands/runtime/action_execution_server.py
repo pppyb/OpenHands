@@ -462,29 +462,29 @@ class ActionExecutor:
         return await browse(action, self.browser)
         
     async def code_search(self, action: CodeSearchAction) -> Observation:
-        """处理代码搜索动作。
+        """Process code search action.
         
-        使用 openhands_aci 中的 code_search_tool 函数执行代码搜索。
+        Uses the code_search_tool function from openhands_aci to perform code search.
         
         Args:
-            action: 代码搜索动作。
+            action: Code search action.
             
         Returns:
-            代码搜索观察或错误观察。
+            Code search observation or error observation.
         """
         assert self.bash_session is not None
         working_dir = self.bash_session.cwd
         
-        # 如果没有指定仓库路径，使用当前工作目录
+        # If no repository path is specified, use the current working directory
         repo_path = action.repo_path or working_dir
         
-        # 如果没有指定保存目录，使用默认目录
+        # If no save directory is specified, use the default directory
         save_dir = action.save_dir
         if save_dir is None:
             save_dir = os.path.join(repo_path, '.code_search_index')
         
         try:
-            # 调用 code_search_tool 函数执行代码搜索
+            # Call code_search_tool function to perform code search
             result = code_search_tool(
                 query=action.query,
                 repo_path=repo_path,
@@ -495,23 +495,23 @@ class ActionExecutor:
                 min_score=action.min_score
             )
             
-            # 处理错误情况
+            # Handle error cases
             if result["status"] == "error":
                 return ErrorObservation(
                     error=result["message"],
                     cause=action.id
                 )
             
-            # 返回搜索结果
+            # Return search results
             return CodeSearchObservation(
                 results=result["results"],
                 cause=action.id
             )
         except Exception as e:
-            # 记录异常并返回错误观察
-            logger.exception("代码搜索过程中出错")
+            # Log exception and return error observation
+            logger.exception("Error during code search")
             return ErrorObservation(
-                error=f"代码搜索过程中出错: {str(e)}",
+                error=f"Error during code search: {str(e)}",
                 cause=action.id
             )
 

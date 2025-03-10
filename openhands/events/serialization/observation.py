@@ -1,4 +1,5 @@
 import copy
+from openhands.events.observation.code_search import CodeSearchObservation
 
 from openhands.events.observation.agent import (
     AgentCondensationObservation,
@@ -40,6 +41,7 @@ observations = (
     UserRejectObservation,
     AgentCondensationObservation,
     AgentThinkObservation,
+    CodeSearchObservation,  
 )
 
 OBSERVATION_TYPE_TO_CLASS = {

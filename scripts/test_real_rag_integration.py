@@ -168,76 +168,7 @@ class RagIntegrationTest:
                 codeact_enable_llm_editor=agent_config.codeact_enable_llm_editor,
                 codeact_enable_jupyter=agent_config.codeact_enable_jupyter
             )
-        
-        # Try to import CodeSearchTool from function_calling
-        try:
-            from openhands.agenthub.codeact_agent.function_calling import CodeSearchTool
-            logger.info("Successfully imported CodeSearchTool from function_calling")
-            
-            # Check if code_search tool is already in the tools list
-            code_search_exists = False
-            for tool in tools:
-                if hasattr(tool, 'function') and hasattr(tool.function, 'name') and tool.function.name == 'code_search':
-                    code_search_exists = True
-                    logger.info("Code search tool already exists in tools list")
-                    break
-                    
-            # Add the code search tool to the beginning of the tools list only if it's not already there
-            if not code_search_exists:
-                logger.info("Adding CodeSearchTool to tools list")
-                tools.insert(0, CodeSearchTool)
-        except ImportError:
-            # If CodeSearchTool is not available, define it here
-            logger.warning("Could not import CodeSearchTool from function_calling, defining it locally")
-            from litellm import ChatCompletionToolParam
-            
-            code_search_tool = ChatCompletionToolParam(
-                type="function",
-                function={
-                    "name": "code_search",
-                    "description": "IMPORTANT: Use this tool to search for relevant code in the repository. This is the preferred way to find code related to your task.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "Natural language query to search for code (e.g., 'how to send a message', 'file handling functions')."
-                            },
-                            "repo_path": {
-                                "type": "string",
-                                "description": "Path to the Git repository to search. Use the repository path provided in the task."
-                            },
-                            "extensions": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "List of file extensions to include (e.g. [\".py\", \".js\"]). Default is [\".py\"]."
-                            },
-                            "k": {
-                                "type": "integer",
-                                "description": "Number of results to return. Default is 5."
-                            },
-                            "thought": {
-                                "type": "string",
-                                "description": "Your reasoning for why this search will help with the task."
-                            }
-                        },
-                        "required": ["query"]
-                    }
-                }
-            )
-            
-            # Check if code_search tool is already in the tools list
-            code_search_exists = False
-            for tool in tools:
-                if hasattr(tool, 'function') and hasattr(tool.function, 'name') and tool.function.name == 'code_search':
-                    code_search_exists = True
-                    logger.info("Code search tool already exists in tools list")
-                    break
-                    
-            # Add the code search tool to the beginning of the tools list only if it's not already there
-            if not code_search_exists:
-                logger.info("Adding locally defined code_search_tool to tools list")
-                tools.insert(0, code_search_tool)
+
         
         # Log the tools being used
         logger.info(f"Using {len(tools)} tools for the agent:")
@@ -346,8 +277,19 @@ class RagIntegrationTest:
                 }
             ]
             
-            code_search_observation = CodeSearchObservation(results=code_search_results)
-            
+            # code_search_observation = CodeSearchObservation(results=code_search_results)
+            # 生成内容
+            content = "\n".join([
+                f"Result {i+1}: {result['file']} (Relevance score: {result['score']})" + 
+                "\n```\n" + result['content'] + "\n```\n"
+                for i, result in enumerate(code_search_results)
+            ])
+
+            # 使用明确的内容创建观察对象
+            code_search_observation = CodeSearchObservation(
+                results=code_search_results,
+                content=content  # 提供必需的 content 参数
+            )         
             # Add the observation to our list and the event stream
             self.observations.append(code_search_observation)
             self.event_stream.add_event(code_search_observation, EventSource.ENVIRONMENT)
@@ -649,7 +591,7 @@ async def main():
     """Main function to run the test script."""
     parser = argparse.ArgumentParser(description='Test RAG code search integration in a real OpenHands agent')
     parser.add_argument('--repo', default=os.getcwd(), help='Path to the repository to use for testing')
-    parser.add_argument('--model', default='gpt-3.5-turbo', help='LLM model to use for the agent')
+    parser.add_argument('--model', default='gpt-4-turbo', help='LLM model to use for the agent')
     parser.add_argument('--api_key', help='OpenAI API key (or set OPENAI_API_KEY environment variable)')
     parser.add_argument('--output', help='File to save test results')
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose logging')

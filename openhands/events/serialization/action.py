@@ -14,6 +14,7 @@ from openhands.events.action.commands import (
     CmdRunAction,
     IPythonRunCellAction,
 )
+from openhands.events.action.code_search import CodeSearchAction
 from openhands.events.action.empty import NullAction
 from openhands.events.action.files import (
     FileEditAction,
@@ -37,6 +38,7 @@ actions = (
     AgentDelegateAction,
     ChangeAgentStateAction,
     MessageAction,
+    CodeSearchAction,  
 )
 
 ACTION_TYPE_TO_CLASS = {action_class.action: action_class for action_class in actions}  # type: ignore[attr-defined]

@@ -169,55 +169,89 @@ class RagIntegrationTest:
                 codeact_enable_jupyter=agent_config.codeact_enable_jupyter
             )
         
-        # Define the code search tool
-        from litellm import ChatCompletionToolParam
-        
-        code_search_tool = ChatCompletionToolParam(
-            type="function",
-            function={
-                "name": "code_search",
-                "description": "IMPORTANT: Use this tool to search for relevant code in the repository. This is the preferred way to find code related to your task.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "Natural language query to search for code (e.g., 'how to send a message', 'file handling functions')."
+        # Try to import CodeSearchTool from function_calling
+        try:
+            from openhands.agenthub.codeact_agent.function_calling import CodeSearchTool
+            logger.info("Successfully imported CodeSearchTool from function_calling")
+            
+            # Check if code_search tool is already in the tools list
+            code_search_exists = False
+            for tool in tools:
+                if hasattr(tool, 'function') and hasattr(tool.function, 'name') and tool.function.name == 'code_search':
+                    code_search_exists = True
+                    logger.info("Code search tool already exists in tools list")
+                    break
+                    
+            # Add the code search tool to the beginning of the tools list only if it's not already there
+            if not code_search_exists:
+                logger.info("Adding CodeSearchTool to tools list")
+                tools.insert(0, CodeSearchTool)
+        except ImportError:
+            # If CodeSearchTool is not available, define it here
+            logger.warning("Could not import CodeSearchTool from function_calling, defining it locally")
+            from litellm import ChatCompletionToolParam
+            
+            code_search_tool = ChatCompletionToolParam(
+                type="function",
+                function={
+                    "name": "code_search",
+                    "description": "IMPORTANT: Use this tool to search for relevant code in the repository. This is the preferred way to find code related to your task.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "Natural language query to search for code (e.g., 'how to send a message', 'file handling functions')."
+                            },
+                            "repo_path": {
+                                "type": "string",
+                                "description": "Path to the Git repository to search. Use the repository path provided in the task."
+                            },
+                            "extensions": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of file extensions to include (e.g. [\".py\", \".js\"]). Default is [\".py\"]."
+                            },
+                            "k": {
+                                "type": "integer",
+                                "description": "Number of results to return. Default is 5."
+                            },
+                            "thought": {
+                                "type": "string",
+                                "description": "Your reasoning for why this search will help with the task."
+                            }
                         },
-                        "repo_path": {
-                            "type": "string",
-                            "description": "Path to the Git repository to search. Use the repository path provided in the task."
-                        },
-                        "extensions": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "List of file extensions to include (e.g. [\".py\", \".js\"]). Default is [\".py\"]."
-                        },
-                        "k": {
-                            "type": "integer",
-                            "description": "Number of results to return. Default is 5."
-                        },
-                        "thought": {
-                            "type": "string",
-                            "description": "Your reasoning for why this search will help with the task."
-                        }
-                    },
-                    "required": ["query"]
+                        "required": ["query"]
+                    }
                 }
-            }
-        )
-        
-        # Add the code search tool to the beginning of the tools list to make it more prominent
-        tools.insert(0, code_search_tool)
+            )
+            
+            # Check if code_search tool is already in the tools list
+            code_search_exists = False
+            for tool in tools:
+                if hasattr(tool, 'function') and hasattr(tool.function, 'name') and tool.function.name == 'code_search':
+                    code_search_exists = True
+                    logger.info("Code search tool already exists in tools list")
+                    break
+                    
+            # Add the code search tool to the beginning of the tools list only if it's not already there
+            if not code_search_exists:
+                logger.info("Adding locally defined code_search_tool to tools list")
+                tools.insert(0, code_search_tool)
         
         # Log the tools being used
         logger.info(f"Using {len(tools)} tools for the agent:")
+        code_search_in_tools = False
         for i, tool in enumerate(tools):
             if hasattr(tool, 'function') and hasattr(tool.function, 'name'):
                 if tool.function.name == 'code_search':
                     logger.info(f"  {i+1}. {tool.function.name} (IMPORTANT)")
+                    code_search_in_tools = True
                 else:
                     logger.info(f"  {i+1}. {tool.function.name}")
+        
+        if not code_search_in_tools:
+            logger.warning("Code search tool is NOT in the tools list! This should not happen.")
         
         # Set the tools on the LLM
         # This is normally done by the agent system, but we need to do it manually for testing

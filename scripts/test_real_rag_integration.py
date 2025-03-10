@@ -111,8 +111,8 @@ class RagIntegrationTest:
             confirmation_mode=False
         )
         
-        # Subscribe to events
-        self.event_stream.subscribe("test", self.event_callback)
+        # Subscribe to events with a unique callback_id
+        self.event_stream.subscribe("test", self.event_callback, "test_callback")
         
         return self.agent_controller
     

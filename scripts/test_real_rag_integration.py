@@ -89,8 +89,14 @@ class RagIntegrationTest:
         from openhands.agenthub.codeact_agent.codeact_agent import CodeActAgent
         from openhands.llm.llm import LLM
         
-        # Create LLM
-        llm = LLM(model=self.model)
+        # Create LLM config
+        llm_config = LLMConfig(
+            model=self.model,
+            temperature=0.2
+        )
+        
+        # Create LLM with config
+        llm = LLM(config=llm_config)
         
         # Create Agent
         agent = CodeActAgent(llm=llm, config=agent_config)

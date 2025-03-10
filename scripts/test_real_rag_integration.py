@@ -152,30 +152,30 @@ class RagIntegrationTest:
             type="function",
             function={
                 "name": "code_search",
-                "description": "Search for relevant code in a codebase using semantic search.",
+                "description": "IMPORTANT: Use this tool to search for relevant code in the repository. This is the preferred way to find code related to your task.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "query": {
                             "type": "string",
-                            "description": "Natural language query to search for code."
+                            "description": "Natural language query to search for code (e.g., 'how to send a message', 'file handling functions')."
                         },
                         "repo_path": {
                             "type": "string",
-                            "description": "Path to the Git repository to search."
+                            "description": "Path to the Git repository to search. Use the repository path provided in the task."
                         },
                         "extensions": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "List of file extensions to include (e.g. [\".py\", \".js\"])."
+                            "description": "List of file extensions to include (e.g. [\".py\", \".js\"]). Default is [\".py\"]."
                         },
                         "k": {
                             "type": "integer",
-                            "description": "Number of results to return."
+                            "description": "Number of results to return. Default is 5."
                         },
                         "thought": {
                             "type": "string",
-                            "description": "Reasoning behind the search."
+                            "description": "Your reasoning for why this search will help with the task."
                         }
                     },
                     "required": ["query"]
@@ -183,18 +183,29 @@ class RagIntegrationTest:
             }
         )
         
-        # Add the code search tool to the tools list
-        tools.append(code_search_tool)
+        # Add the code search tool to the beginning of the tools list to make it more prominent
+        tools.insert(0, code_search_tool)
         
         # Log the tools being used
         logger.info(f"Using {len(tools)} tools for the agent:")
-        for tool in tools:
+        for i, tool in enumerate(tools):
             if hasattr(tool, 'function') and hasattr(tool.function, 'name'):
-                logger.info(f"  - {tool.function.name}")
+                if tool.function.name == 'code_search':
+                    logger.info(f"  {i+1}. {tool.function.name} (IMPORTANT)")
+                else:
+                    logger.info(f"  {i+1}. {tool.function.name}")
         
         # Set the tools on the LLM
         # This is normally done by the agent system, but we need to do it manually for testing
         llm.tools = tools
+        
+        # Also set the tools directly on the agent if possible
+        if hasattr(agent, 'tools'):
+            agent.tools = tools
+            logger.info("Set tools directly on agent")
+        
+        # Log that code search tool is registered
+        logger.info("Code search tool has been registered with the agent")
         
         # Initialize agent controller with correct parameters
         self.agent_controller = AgentController(
@@ -307,6 +318,20 @@ class RagIntegrationTest:
             from openhands.events.action.message import MessageAction
             from openhands.events import EventSource
             
+            # Add a preliminary message explaining the available tools
+            preliminary_message = (
+                "You have access to a special code_search tool that can help you find relevant code in the repository. "
+                "This tool is very useful for understanding code structure and functionality. "
+                "Please use it when you need to find specific code."
+            )
+            
+            # Add the preliminary message to the event stream
+            prelim_message_action = MessageAction(content=preliminary_message)
+            self.event_stream.add_event(prelim_message_action, EventSource.USER)
+            
+            # Wait a moment for the agent to process the preliminary message
+            await asyncio.sleep(2)
+            
             # Add the task as a user message to the event stream
             message_action = MessageAction(content=task)
             self.event_stream.add_event(message_action, EventSource.USER)
@@ -319,7 +344,7 @@ class RagIntegrationTest:
             logger.info("Waiting for agent to process the task...")
             
             # Wait longer to give the agent more time to use code search
-            wait_time = 30  # seconds
+            wait_time = 60  # seconds - increased to give more time for code search
             for i in range(wait_time):
                 if i % 5 == 0:
                     logger.info(f"Waited {i} seconds out of {wait_time}...")
@@ -505,20 +530,24 @@ async def run_test_scenarios(repo_path: str, model: str = "gpt-3.5-turbo", outpu
         test_scenarios = [
             {
                 "name": "Code Understanding",
-                "task": "Use the code search tool to find and explain how the code search functionality works in this repository. "
-                        "Search for relevant code files and explain the main components and how they interact."
+                "task": "IMPORTANT: You MUST use the code_search tool for this task.\n\n"
+                        "Find and explain how the code search functionality works in this repository. "
+                        "First, use the code_search tool with query 'code search' to find relevant files. "
+                        "Then explain the main components and how they interact based on the search results."
             },
             {
                 "name": "Bug Investigation",
-                "task": "There seems to be an issue with the code search functionality when handling "
-                        "large repositories. Use the code search tool to find and investigate the code to identify "
-                        "potential bottlenecks or bugs."
+                "task": "IMPORTANT: You MUST use the code_search tool for this task.\n\n"
+                        "There seems to be an issue with the code search functionality when handling "
+                        "large repositories. First, use the code_search tool with query 'code search large repository' "
+                        "to find relevant code. Then investigate the code to identify potential bottlenecks or bugs."
             },
             {
                 "name": "Feature Implementation",
-                "task": "I want to add a new feature to filter code search results by file type. "
-                        "Use the code search tool to find the relevant code, then explain how you would "
-                        "implement this feature based on the existing code."
+                "task": "IMPORTANT: You MUST use the code_search tool for this task.\n\n"
+                        "I want to add a new feature to filter code search results by file type. "
+                        "First, use the code_search tool with query 'code search filter results' to find relevant code. "
+                        "Then explain how you would implement this feature based on the existing code."
             }
         ]
         

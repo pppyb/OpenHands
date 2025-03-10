@@ -186,6 +186,12 @@ class RagIntegrationTest:
         # Add the code search tool to the tools list
         tools.append(code_search_tool)
         
+        # Log the tools being used
+        logger.info(f"Using {len(tools)} tools for the agent:")
+        for tool in tools:
+            if hasattr(tool, 'function') and hasattr(tool.function, 'name'):
+                logger.info(f"  - {tool.function.name}")
+        
         # Set the tools on the LLM
         # This is normally done by the agent system, but we need to do it manually for testing
         llm.tools = tools
@@ -195,10 +201,12 @@ class RagIntegrationTest:
             sid=self.session_id,
             event_stream=self.event_stream,
             agent=agent,
-            max_iterations=20,
+            max_iterations=50,  # Increase max iterations to give agent more time
             headless_mode=True,
             confirmation_mode=False
         )
+        
+        logger.info(f"Agent controller initialized with max_iterations=50")
         
         # Subscribe to events with a unique callback_id
         self.event_stream.subscribe("test", self.event_callback, "test_callback")
@@ -307,7 +315,24 @@ class RagIntegrationTest:
             
             # Wait for the agent to complete the task (simplified)
             # In a real implementation, we would wait for a specific event or state
-            await asyncio.sleep(10)  # Wait a bit for the agent to process
+            logger.info("Waiting for agent to process the task...")
+            
+            # Wait longer to give the agent more time to use code search
+            wait_time = 30  # seconds
+            for i in range(wait_time):
+                if i % 5 == 0:
+                    logger.info(f"Waited {i} seconds out of {wait_time}...")
+                await asyncio.sleep(1)
+                
+                # Check if we have any code search actions already
+                code_search_actions = [
+                    a for a in self.actions 
+                    if isinstance(a, CodeSearchAction) or getattr(a, 'action', None) == ActionType.CODE_SEARCH
+                ]
+                if code_search_actions:
+                    logger.info(f"Agent has used code search after {i+1} seconds. Continuing to wait for completion...")
+            
+            logger.info(f"Finished waiting {wait_time} seconds for agent processing.")
             
             # Analyze the agent's behavior
             analysis = self._analyze_agent_behavior()
@@ -324,6 +349,13 @@ class RagIntegrationTest:
         Returns:
             Dictionary with analysis results
         """
+        # Log all actions for debugging
+        logger.info(f"Agent performed {len(self.actions)} actions:")
+        for i, action in enumerate(self.actions):
+            action_type = type(action).__name__
+            action_name = getattr(action, 'action', None)
+            logger.info(f"  {i+1}. {action_type} - {action_name}")
+        
         # Find all code search actions
         code_search_actions = [
             a for a in self.actions 
@@ -335,6 +367,27 @@ class RagIntegrationTest:
             o for o in self.observations 
             if isinstance(o, CodeSearchObservation) or getattr(o, 'observation', None) == ObservationType.CODE_SEARCH
         ]
+        
+        # Log detailed information about actions
+        if not code_search_actions:
+            logger.warning("Agent did not use code search during this task despite explicit instructions.")
+            logger.info("Action types performed:")
+            action_types = {}
+            for action in self.actions:
+                action_type = type(action).__name__
+                action_types[action_type] = action_types.get(action_type, 0) + 1
+            for action_type, count in action_types.items():
+                logger.info(f"  {action_type}: {count}")
+        else:
+            # Log detailed information about code search actions
+            for i, action in enumerate(code_search_actions):
+                logger.info(f"Code search {i+1}:")
+                logger.info(f"  Query: {getattr(action, 'query', 'Unknown')}")
+                logger.info(f"  Repo path: {getattr(action, 'repo_path', 'Unknown')}")
+                if hasattr(action, 'extensions') and action.extensions:
+                    logger.info(f"  Extensions: {action.extensions}")
+                if hasattr(action, 'thought') and action.thought:
+                    logger.info(f"  Thought: {action.thought}")
         
         # Match actions with their observations
         action_observation_pairs = []
@@ -362,6 +415,7 @@ class RagIntegrationTest:
             "action_observation_pairs": action_observation_pairs,
             "total_actions": len(self.actions),
             "code_search_percentage": len(code_search_actions) / len(self.actions) if self.actions else 0,
+            "action_types": [type(a).__name__ for a in self.actions]
         }
     
     def get_detailed_report(self) -> str:
@@ -447,18 +501,20 @@ async def run_test_scenarios(repo_path: str, model: str = "gpt-3.5-turbo", outpu
         test_scenarios = [
             {
                 "name": "Code Understanding",
-                "task": "Explain how the code search functionality works in this repository. "
-                        "What are the main components and how do they interact?"
+                "task": "Use the code search tool to find and explain how the code search functionality works in this repository. "
+                        "Search for relevant code files and explain the main components and how they interact."
             },
             {
                 "name": "Bug Investigation",
                 "task": "There seems to be an issue with the code search functionality when handling "
-                        "large repositories. Investigate the code to find potential bottlenecks or bugs."
+                        "large repositories. Use the code search tool to find and investigate the code to identify "
+                        "potential bottlenecks or bugs."
             },
             {
                 "name": "Feature Implementation",
                 "task": "I want to add a new feature to filter code search results by file type. "
-                        "How would you implement this based on the existing code?"
+                        "Use the code search tool to find the relevant code, then explain how you would "
+                        "implement this feature based on the existing code."
             }
         ]
         

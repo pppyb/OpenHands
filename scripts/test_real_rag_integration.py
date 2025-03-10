@@ -325,6 +325,9 @@ class RagIntegrationTest:
                 await asyncio.sleep(1)
                 
                 # Check if we have any code search actions already
+                # Import CodeSearchAction here to ensure it's in scope
+                from openhands.events.action.code_search import CodeSearchAction
+                
                 code_search_actions = [
                     a for a in self.actions 
                     if isinstance(a, CodeSearchAction) or getattr(a, 'action', None) == ActionType.CODE_SEARCH

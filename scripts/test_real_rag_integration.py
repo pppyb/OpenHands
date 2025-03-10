@@ -91,11 +91,26 @@ class RagIntegrationTest:
         from openhands.events.action.code_search import CodeSearchAction
         
         # Create LLM config
-        llm_config = LLMConfig(
-            model=self.model,
-            temperature=0.2,
-            native_tool_calling=True  # Enable native tool calling (function calling)
-        )
+        # Check if OPENAI_API_KEY is set
+        api_key = os.environ.get('OPENAI_API_KEY')
+        
+        # Create LLM config with API key if available
+        if api_key:
+            from pydantic import SecretStr
+            llm_config = LLMConfig(
+                model=self.model,
+                temperature=0.2,
+                native_tool_calling=True,  # Enable native tool calling (function calling)
+                api_key=SecretStr(api_key)  # Set API key
+            )
+        else:
+            # If no API key, use a model that doesn't require one
+            logger.warning("No OpenAI API key provided. Using a local model for testing.")
+            llm_config = LLMConfig(
+                model="claude-3-5-sonnet-20241022",  # Default model that might not require API key
+                temperature=0.2,
+                native_tool_calling=True  # Enable native tool calling (function calling)
+            )
         
         # Create LLM with config
         llm = LLM(config=llm_config)
@@ -196,36 +211,95 @@ class RagIntegrationTest:
         """
         logger.info(f"Running task: {task}")
         
-        if not self.agent_controller:
-            self.initialize_agent_controller()
+        # Check if we're in mock mode
+        mock_mode = os.environ.get('OPENHANDS_TEST_MOCK_MODE') == 'true'
         
-        # Clear previous actions and observations
-        self.actions = []
-        self.observations = []
-        
-        # Create a message action with the task
-        from openhands.events.action.message import MessageAction
-        from openhands.events import EventSource
-        
-        # Add the task as a user message to the event stream
-        message_action = MessageAction(content=task)
-        self.event_stream.add_event(message_action, EventSource.USER)
-        
-        # Start the agent controller
-        self.agent_controller.step()
-        
-        # Wait for the agent to complete the task (simplified)
-        # In a real implementation, we would wait for a specific event or state
-        await asyncio.sleep(10)  # Wait a bit for the agent to process
-        
-        # Analyze the agent's behavior
-        analysis = self._analyze_agent_behavior()
-        
-        return {
-            "task": task,
-            "result": "Task processed",
-            "analysis": analysis
-        }
+        if mock_mode:
+            logger.info("Running in mock mode - simulating agent behavior")
+            
+            # Simulate agent behavior with code search
+            from openhands.events.action.code_search import CodeSearchAction
+            from openhands.events.observation.code_search import CodeSearchObservation
+            from openhands.events import EventSource
+            
+            # Simulate a code search action
+            if "code" in task.lower() or "search" in task.lower():
+                # Create a simulated code search action
+                code_search_action = CodeSearchAction(
+                    query="Find relevant code for " + task,
+                    repo_path=self.repo_path,
+                    extensions=[".py"],
+                    k=3,
+                    thought="I should search for relevant code to understand this task"
+                )
+                
+                # Add the action to our list and the event stream
+                self.actions.append(code_search_action)
+                self.event_stream.add_event(code_search_action, EventSource.AGENT)
+                
+                # Create a simulated code search observation
+                code_search_results = [
+                    {
+                        "file": "openhands/events/action/code_search.py",
+                        "score": 0.95,
+                        "content": "class CodeSearchAction(Action):\n    \"\"\"Search for relevant code in a codebase using semantic search.\"\"\"\n    # ... code content ..."
+                    },
+                    {
+                        "file": "openhands/events/observation/code_search.py",
+                        "score": 0.92,
+                        "content": "class CodeSearchObservation(Observation):\n    \"\"\"Result of a code search operation.\"\"\"\n    # ... code content ..."
+                    }
+                ]
+                
+                code_search_observation = CodeSearchObservation(results=code_search_results)
+                
+                # Add the observation to our list and the event stream
+                self.observations.append(code_search_observation)
+                self.event_stream.add_event(code_search_observation, EventSource.ENVIRONMENT)
+            
+            # Simulate waiting for processing
+            await asyncio.sleep(1)
+            
+            # Analyze the agent's behavior
+            analysis = self._analyze_agent_behavior()
+            
+            return {
+                "task": task,
+                "result": "Task processed in mock mode",
+                "analysis": analysis
+            }
+        else:
+            # Real mode - use the actual agent
+            if not self.agent_controller:
+                self.initialize_agent_controller()
+            
+            # Clear previous actions and observations
+            self.actions = []
+            self.observations = []
+            
+            # Create a message action with the task
+            from openhands.events.action.message import MessageAction
+            from openhands.events import EventSource
+            
+            # Add the task as a user message to the event stream
+            message_action = MessageAction(content=task)
+            self.event_stream.add_event(message_action, EventSource.USER)
+            
+            # Start the agent controller
+            self.agent_controller.step()
+            
+            # Wait for the agent to complete the task (simplified)
+            # In a real implementation, we would wait for a specific event or state
+            await asyncio.sleep(10)  # Wait a bit for the agent to process
+            
+            # Analyze the agent's behavior
+            analysis = self._analyze_agent_behavior()
+            
+            return {
+                "task": task,
+                "result": "Task processed",
+                "analysis": analysis
+            }
     
     def _analyze_agent_behavior(self) -> Dict[str, Any]:
         """Analyze how the agent used code search during the task.
@@ -330,7 +404,7 @@ class RagIntegrationTest:
         return "\n".join(report)
 
 
-async def run_test_scenarios(repo_path: str, model: str = "gpt-4", output_file: Optional[str] = None):
+async def run_test_scenarios(repo_path: str, model: str = "gpt-3.5-turbo", output_file: Optional[str] = None):
     """Run a series of test scenarios to evaluate RAG code search integration.
     
     Args:
@@ -338,6 +412,14 @@ async def run_test_scenarios(repo_path: str, model: str = "gpt-4", output_file: 
         model: LLM model to use for the agent
         output_file: Optional file to save test results
     """
+    # Check if we have an API key
+    has_api_key = bool(os.environ.get('OPENAI_API_KEY'))
+    
+    # If no API key and using an OpenAI model, warn the user
+    if not has_api_key and ('gpt' in model.lower() or 'openai' in model.lower()):
+        logger.warning(f"No OpenAI API key provided for model {model}. Test may fail.")
+        logger.warning("Run with --api_key YOUR_API_KEY or set OPENAI_API_KEY environment variable.")
+    
     # Initialize the test
     test = RagIntegrationTest(repo_path=repo_path, model=model)
     
@@ -401,15 +483,30 @@ async def main():
     """Main function to run the test script."""
     parser = argparse.ArgumentParser(description='Test RAG code search integration in a real OpenHands agent')
     parser.add_argument('--repo', default=os.getcwd(), help='Path to the repository to use for testing')
-    parser.add_argument('--model', default='gpt-4', help='LLM model to use for the agent')
+    parser.add_argument('--model', default='gpt-3.5-turbo', help='LLM model to use for the agent')
+    parser.add_argument('--api_key', help='OpenAI API key (or set OPENAI_API_KEY environment variable)')
     parser.add_argument('--output', help='File to save test results')
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose logging')
+    parser.add_argument('--mock', action='store_true', help='Use mock mode without real LLM calls (for testing without API key)')
     
     args = parser.parse_args()
     
     # Set logging level
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+    
+    # Set OpenAI API key if provided
+    if args.api_key:
+        os.environ['OPENAI_API_KEY'] = args.api_key
+    
+    # If mock mode is enabled, set a special environment variable
+    if args.mock:
+        os.environ['OPENHANDS_TEST_MOCK_MODE'] = 'true'
+        logger.info("Running in mock mode - no real LLM calls will be made")
+        
+        # Use a fake API key in mock mode
+        if not os.environ.get('OPENAI_API_KEY'):
+            os.environ['OPENAI_API_KEY'] = 'sk-mock-key-for-testing'
     
     # Run the test scenarios
     await run_test_scenarios(

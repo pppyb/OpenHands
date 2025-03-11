@@ -502,9 +502,17 @@ class ActionExecutor:
                     cause=action.id
                 )
             
-            # Return search results
+            # Generate formatted content for the observation
+            content = "\n".join([
+                f"Result {i+1}: {result['file']} (Relevance score: {result['score']})" + 
+                "\n```\n" + result['content'] + "\n```\n"
+                for i, result in enumerate(result["results"])
+            ])
+            
+            # Return search results with required content parameter
             return CodeSearchObservation(
                 results=result["results"],
+                content=content,
                 cause=action.id
             )
         except Exception as e:

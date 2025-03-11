@@ -591,7 +591,7 @@ async def main():
     """Main function to run the test script."""
     parser = argparse.ArgumentParser(description='Test RAG code search integration in a real OpenHands agent')
     parser.add_argument('--repo', default=os.getcwd(), help='Path to the repository to use for testing')
-    parser.add_argument('--model', default='gpt-4-turbo', help='LLM model to use for the agent')
+    parser.add_argument('--model', default='gpt-3.5-turbo', help='LLM model to use for the agent')
     parser.add_argument('--api_key', help='OpenAI API key (or set OPENAI_API_KEY environment variable)')
     parser.add_argument('--output', help='File to save test results')
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose logging')

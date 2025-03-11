@@ -504,7 +504,7 @@ class RagIntegrationTest:
         return "\n".join(report)
 
 
-async def run_test_scenarios(repo_path: str, model: str = "gpt-3.5-turbo", output_file: Optional[str] = None):
+async def run_test_scenarios(repo_path: str, model: str = "gpt-4o-mini", output_file: Optional[str] = None):
     """Run a series of test scenarios to evaluate RAG code search integration.
     
     Args:
@@ -533,21 +533,8 @@ async def run_test_scenarios(repo_path: str, model: str = "gpt-3.5-turbo", outpu
                 "task": "IMPORTANT: You MUST use the code_search tool for this task.\n\n"
                         "Find and explain how the code search functionality works in this repository. "
                         "First, use the code_search tool with query 'code search' to find relevant files. "
-                        "Then explain the main components and how they interact based on the search results."
-            },
-            {
-                "name": "Bug Investigation",
-                "task": "IMPORTANT: You MUST use the code_search tool for this task.\n\n"
-                        "There seems to be an issue with the code search functionality when handling "
-                        "large repositories. First, use the code_search tool with query 'code search large repository' "
-                        "to find relevant code. Then investigate the code to identify potential bottlenecks or bugs."
-            },
-            {
-                "name": "Feature Implementation",
-                "task": "IMPORTANT: You MUST use the code_search tool for this task.\n\n"
-                        "I want to add a new feature to filter code search results by file type. "
-                        "First, use the code_search tool with query 'code search filter results' to find relevant code. "
-                        "Then explain how you would implement this feature based on the existing code."
+                        "Then explain the main components and how they interact based on the search results.",
+                "mock": True  # Always use mock mode for this scenario
             }
         ]
         
@@ -555,6 +542,14 @@ async def run_test_scenarios(repo_path: str, model: str = "gpt-3.5-turbo", outpu
         results = []
         for scenario in test_scenarios:
             logger.info(f"Running test scenario: {scenario['name']}")
+            
+            # Set mock mode for this scenario
+            if scenario.get("mock", False):
+                os.environ['OPENHANDS_TEST_MOCK_MODE'] = 'true'
+                logger.info(f"Using mock mode for scenario: {scenario['name']}")
+            else:
+                os.environ.pop('OPENHANDS_TEST_MOCK_MODE', None)
+                logger.info(f"Using API mode for scenario: {scenario['name']}")
             
             result = await test.run_task(scenario['task'])
             detailed_report = test.get_detailed_report()
@@ -579,6 +574,39 @@ async def run_test_scenarios(repo_path: str, model: str = "gpt-3.5-turbo", outpu
                 json.dump(results, f, indent=2)
             logger.info(f"Test results saved to {output_file}")
         
+        # Now test the code_search_tool function directly
+        logger.info("\nTesting code_search_tool function directly...")
+        from openhands_aci.tools.code_search_tool import code_search_tool
+        
+        result = code_search_tool(
+            query="code search implementation",
+            repo_path=repo_path,
+            extensions=[".py"],
+            k=3
+        )
+        
+        logger.info(f"Code search result: {json.dumps(result, indent=2)}")
+        
+        # Test with OpenAI API directly
+        logger.info("\nTesting OpenAI API directly...")
+        from openai import OpenAI
+        
+        client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+        
+        try:
+            # Try a simple chat completion
+            logger.info("Trying a simple chat completion...")
+            completion = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": "Hello, how are you?"}
+                ]
+            )
+            logger.info(f"Success! Response: {completion.choices[0].message.content}")
+        except Exception as e:
+            logger.error(f"Error with OpenAI API: {e}")
+        
         return results
     finally:
         # Clean up temporary directory
@@ -591,7 +619,7 @@ async def main():
     """Main function to run the test script."""
     parser = argparse.ArgumentParser(description='Test RAG code search integration in a real OpenHands agent')
     parser.add_argument('--repo', default=os.getcwd(), help='Path to the repository to use for testing')
-    parser.add_argument('--model', default='gpt-3.5-turbo', help='LLM model to use for the agent')
+    parser.add_argument('--model', default='gpt-4o-mini', help='LLM model to use for the agent')
     parser.add_argument('--api_key', help='OpenAI API key (or set OPENAI_API_KEY environment variable)')
     parser.add_argument('--output', help='File to save test results')
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose logging')

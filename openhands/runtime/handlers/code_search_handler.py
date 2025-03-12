@@ -59,7 +59,9 @@ class CodeSearchHandler(ActionHandler):
         
         # Use openhands_aci implementation if available
         if OPENHANDS_ACI_AVAILABLE:
-            return execute_code_search(action)
+            # Check if we should use mock mode for testing
+            use_mock = os.environ.get('OPENHANDS_TEST_MOCK_MODE') == 'true'
+            return execute_code_search(action, mock_mode=use_mock)
         
         # Mock implementation if openhands_aci is not available
         logger.warning("Using mock implementation for code search")

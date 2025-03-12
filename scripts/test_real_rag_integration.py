@@ -647,5 +647,48 @@ async def main():
     )
 
 
+def test_code_search_directly(query=None, use_mock=False):
+    """Test the code_search_tool function directly."""
+    print("Testing code_search_tool function directly...")
+    from openhands_aci.tools.code_search_tool import code_search_tool
+    
+    # Get the current directory
+    repo_path = os.path.abspath(os.getcwd())
+    print(f"Using repository path: {repo_path}")
+    
+    # Use provided query or default
+    if query is None:
+        query = "code search"
+    print(f"Searching for: {query}")
+    
+    if use_mock:
+        print("Using mock mode for testing")
+    
+    result = code_search_tool(
+        query=query,
+        repo_path=repo_path,
+        extensions=[".py"],
+        k=5,
+        mock_mode=use_mock
+    )
+    
+    # Print the results
+    print(f"Found {len(result['results'])} results:")
+    for i, res in enumerate(result["results"]):
+        print(f"\nResult {i+1}: {res['file']} (Score: {res['score']:.3f})")
+        # Print a snippet of the content
+        content = res['content']
+        if len(content) > 300:
+            content = content[:300] + "..."
+        print(f"```\n{content}\n```")
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "--direct":
+            query = sys.argv[2] if len(sys.argv) > 2 else None
+            use_mock = "--mock" in sys.argv
+            test_code_search_directly(query, use_mock)
+        else:
+            asyncio.run(main())
+    else:
+        asyncio.run(main())

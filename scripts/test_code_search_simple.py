@@ -20,6 +20,7 @@ def main():
     parser.add_argument('--extensions', nargs='+', default=['.py'], help='File extensions to search')
     parser.add_argument('--results', type=int, default=5, help='Number of results to return')
     parser.add_argument('--min-score', type=float, default=0.5, help='Minimum score threshold')
+    parser.add_argument('--mock', action='store_true', help='Use mock mode for testing')
     
     args = parser.parse_args()
     
@@ -28,6 +29,7 @@ def main():
     print(f"Extensions: {', '.join(args.extensions)}")
     print(f"Max results: {args.results}")
     print(f"Min score: {args.min_score}")
+    print(f"Mock mode: {args.mock}")
     print("-" * 80)
     
     # Execute code search
@@ -36,20 +38,18 @@ def main():
         repo_path=args.repo,
         extensions=args.extensions,
         k=args.results,
-        remove_duplicates=True,
-        min_score=args.min_score
+        mock_mode=args.mock
     )
     
     # Print results
-    print(f"\nSearch status: {result['status']}")
-    if result['status'] == 'success':
-        print(f"Found {len(result['results'])} results:")
+    if "error" in result:
+        print(f"\nError: {result['error']}")
+    else:
+        print(f"\nFound {len(result['results'])} results:")
         for i, res in enumerate(result['results'], 1):
             print(f"\nResult {i}: {res['file']} (Score: {res['score']})")
             print("-" * 40)
             print(res['content'])
-    else:
-        print(f"Error: {result.get('message', 'Unknown error')}")
 
 
 if __name__ == "__main__":

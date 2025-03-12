@@ -4,6 +4,13 @@ from collections import deque
 
 import openhands
 import openhands.agenthub.codeact_agent.function_calling as codeact_function_calling
+
+# Import code search tools if available
+try:
+    from openhands_aci.rag.function_calling import register_code_search_tools
+    CODE_SEARCH_AVAILABLE = True
+except ImportError:
+    CODE_SEARCH_AVAILABLE = False
 from openhands.controller.agent import Agent
 from openhands.controller.state.state import State
 from openhands.core.config import AgentConfig
@@ -70,11 +77,21 @@ class CodeActAgent(Agent):
         self.pending_actions: deque[Action] = deque()
         self.reset()
 
+        # Register code search tools if available
+        if CODE_SEARCH_AVAILABLE:
+            try:
+                from openhands.agenthub.codeact_agent.function_calling import get_registered_tools
+                register_code_search_tools(lambda tool: get_registered_tools().append(tool))
+                logger.info("Code search tools registered successfully")
+            except Exception as e:
+                logger.warning(f"Failed to register code search tools: {e}")
+
         # Retrieve the enabled tools
         self.tools = codeact_function_calling.get_tools(
             codeact_enable_browsing=self.config.codeact_enable_browsing,
             codeact_enable_jupyter=self.config.codeact_enable_jupyter,
             codeact_enable_llm_editor=self.config.codeact_enable_llm_editor,
+            codeact_enable_code_search=True,  # Enable code search by default
         )
         logger.debug(
             f'TOOLS loaded for CodeActAgent: {json.dumps(self.tools, indent=2, ensure_ascii=False).replace("\\n", "\n")}'

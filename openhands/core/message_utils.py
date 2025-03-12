@@ -340,6 +340,10 @@ def get_observation_message(
     elif isinstance(obs, AgentCondensationObservation):
         text = truncate_content(obs.content, max_message_chars)
         message = Message(role='user', content=[TextContent(text=text)])
+    elif hasattr(obs, '__class__') and obs.__class__.__name__ == 'CodeSearchObservation':
+        # Handle CodeSearchObservation from openhands-aci
+        text = truncate_content(obs.content, max_message_chars)
+        message = Message(role='user', content=[TextContent(text=text)])
     else:
         # If an observation message is not returned, it will cause an error
         # when the LLM tries to return the next message

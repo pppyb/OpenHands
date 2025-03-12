@@ -25,6 +25,7 @@ from fastapi.security import APIKeyHeader
 from openhands_aci.editor.editor import OHEditor
 from openhands_aci.editor.exceptions import ToolError
 from openhands_aci.editor.results import ToolResult
+from openhands_aci.tools.code_search_tool import code_search_tool
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -36,6 +37,7 @@ from openhands.events.action import (
     BrowseInteractiveAction,
     BrowseURLAction,
     CmdRunAction,
+    CodeSearchAction,
     FileEditAction,
     FileReadAction,
     FileWriteAction,
@@ -44,6 +46,7 @@ from openhands.events.action import (
 from openhands.events.event import FileEditSource, FileReadSource
 from openhands.events.observation import (
     CmdOutputObservation,
+    CodeSearchObservation,
     ErrorObservation,
     FileEditObservation,
     FileReadObservation,
@@ -457,6 +460,68 @@ class ActionExecutor:
 
     async def browse_interactive(self, action: BrowseInteractiveAction) -> Observation:
         return await browse(action, self.browser)
+        
+    async def code_search(self, action: CodeSearchAction) -> Observation:
+        """Process code search action.
+        
+        Uses the code_search_tool function from openhands_aci to perform code search.
+        
+        Args:
+            action: Code search action.
+            
+        Returns:
+            Code search observation or error observation.
+        """
+        assert self.bash_session is not None
+        working_dir = self.bash_session.cwd
+        
+        # If no repository path is specified, use the current working directory
+        repo_path = action.repo_path or working_dir
+        
+        # If no save directory is specified, use the default directory
+        save_dir = action.save_dir
+        if save_dir is None:
+            save_dir = os.path.join(repo_path, '.code_search_index')
+        
+        try:
+            # Call code_search_tool function to perform code search
+            result = code_search_tool(
+                query=action.query,
+                repo_path=repo_path,
+                save_dir=save_dir,
+                extensions=action.extensions,
+                k=action.k,
+                remove_duplicates=action.remove_duplicates,
+                min_score=action.min_score
+            )
+            
+            # Handle error cases
+            if result["status"] == "error":
+                return ErrorObservation(
+                    error=result["message"],
+                    cause=action.id
+                )
+            
+            # Generate formatted content for the observation
+            content = "\n".join([
+                f"Result {i+1}: {result['file']} (Relevance score: {result['score']})" + 
+                "\n```\n" + result['content'] + "\n```\n"
+                for i, result in enumerate(result["results"])
+            ])
+            
+            # Return search results with required content parameter
+            return CodeSearchObservation(
+                results=result["results"],
+                content=content,
+                cause=action.id
+            )
+        except Exception as e:
+            # Log exception and return error observation
+            logger.exception("Error during code search")
+            return ErrorObservation(
+                error=f"Error during code search: {str(e)}",
+                cause=action.id
+            )
 
     def close(self):
         self.memory_monitor.stop_monitoring()

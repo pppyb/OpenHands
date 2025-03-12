@@ -65,7 +65,6 @@ FUNCTION_CALLING_SUPPORTED_MODELS = [
     'o3-mini-2025-01-31',
     'o3-mini',
 ]
-
 REASONING_EFFORT_SUPPORTED_MODELS = [
     'o1-2024-12-17',
     'o1',

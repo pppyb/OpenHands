@@ -278,17 +278,15 @@ class RagIntegrationTest:
             ]
             
             # code_search_observation = CodeSearchObservation(results=code_search_results)
-            # 生成内容
             content = "\n".join([
                 f"Result {i+1}: {result['file']} (Relevance score: {result['score']})" + 
                 "\n```\n" + result['content'] + "\n```\n"
                 for i, result in enumerate(code_search_results)
             ])
 
-            # 使用明确的内容创建观察对象
             code_search_observation = CodeSearchObservation(
                 results=code_search_results,
-                content=content  # 提供必需的 content 参数
+                content=content
             )         
             # Add the observation to our list and the event stream
             self.observations.append(code_search_observation)
@@ -534,7 +532,7 @@ async def run_test_scenarios(repo_path: str, model: str = "gpt-4o-mini", output_
                         "Find and explain how the code search functionality works in this repository. "
                         "First, use the code_search tool with query 'code search' to find relevant files. "
                         "Then explain the main components and how they interact based on the search results.",
-                "mock": True  # Always use mock mode for this scenario
+                "mock": False  # Always use mock mode for this scenario
             }
         ]
         

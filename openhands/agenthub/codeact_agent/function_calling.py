@@ -106,6 +106,26 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
                 )
 
             # ================================================
+            # CodeSearchAction
+            # ================================================
+            elif tool_call.function.name == 'code_search':
+                if 'query' not in arguments:
+                    raise FunctionCallValidationError(
+                        f'Missing required argument "query" in tool call {tool_call.function.name}'
+                    )
+                
+                # Get repo_path with default to current directory
+                repo_path = arguments.get('repo_path', '.')
+                
+                action = CodeSearchAction(
+                    query=arguments['query'],
+                    repo_path=repo_path,
+                    extensions=arguments.get('extensions'),
+                    k=arguments.get('k', 5),
+                    thought=arguments.get('thought', '')
+                )
+            
+            # ================================================
             # AgentFinishAction
             # ================================================
             elif tool_call.function.name == FinishTool['function']['name']:

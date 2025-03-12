@@ -30,6 +30,7 @@ from openhands.events.action import (
     FileWriteAction,
     IPythonRunCellAction,
 )
+from openhands.events.action.code_search import CodeSearchAction
 from openhands.events.event import Event
 from openhands.events.observation import (
     AgentThinkObservation,
@@ -40,6 +41,8 @@ from openhands.events.observation import (
     Observation,
     UserRejectObservation,
 )
+from openhands.events.observation.code_search import CodeSearchObservation
+from openhands.runtime.handlers import CodeSearchHandler
 from openhands.events.serialization.action import ACTION_TYPE_TO_CLASS
 from openhands.integrations.github.github_service import GithubServiceImpl
 from openhands.microagent import (
@@ -450,6 +453,22 @@ class Runtime(FileEditRuntimeMixin):
     @abstractmethod
     def browse_interactive(self, action: BrowseInteractiveAction) -> Observation:
         pass
+        
+    def code_search(self, action: CodeSearchAction) -> Observation:
+        """Execute a code search action.
+        
+        Args:
+            action: The code search action to execute
+            
+        Returns:
+            A code search observation with the search results
+        """
+        handler = CodeSearchHandler()
+        if handler.can_handle(action):
+            return handler.handle(action)
+        return ErrorObservation(
+            f"Failed to execute code search: No handler available for action {action}"
+        )
 
     # ====================================================================
     # File operations

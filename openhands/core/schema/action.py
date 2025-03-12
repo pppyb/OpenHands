@@ -82,5 +82,8 @@ class ActionTypeSchema(BaseModel):
     SEND_PR: str = Field(default='send_pr')
     """Send a PR to github."""
 
+    CODE_SEARCH: str = Field(default='code_search')
+    """Search for relevant code in a codebase using semantic search."""
+
 
 ActionType = ActionTypeSchema()

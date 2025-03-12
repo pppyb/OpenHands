@@ -49,5 +49,8 @@ class ObservationTypeSchema(BaseModel):
     CONDENSE: str = Field(default='condense')
     """Result of a condensation operation."""
 
+    CODE_SEARCH: str = Field(default='code_search')
+    """Result of a code search operation."""
+
 
 ObservationType = ObservationTypeSchema()

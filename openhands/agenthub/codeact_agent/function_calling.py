@@ -13,6 +13,7 @@ from litellm import (
 from openhands.agenthub.codeact_agent.tools import (
     BrowserTool,
     CmdRunTool,
+    CodeSearchTool,
     FinishTool,
     IPythonTool,
     LLMBasedFileEditTool,
@@ -20,6 +21,14 @@ from openhands.agenthub.codeact_agent.tools import (
     ThinkTool,
     WebReadTool,
 )
+
+# Import code search action and observation from openhands-aci
+try:
+    from openhands_aci.rag.code_search import CodeSearchAction, execute_code_search
+    from openhands_aci.rag.function_calling import register_code_search_tools
+    CODE_SEARCH_AVAILABLE = True
+except ImportError:
+    CODE_SEARCH_AVAILABLE = False
 from openhands.core.exceptions import (
     FunctionCallNotExistsError,
     FunctionCallValidationError,
@@ -184,6 +193,25 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
                         f'Missing required argument "url" in tool call {tool_call.function.name}'
                     )
                 action = BrowseURLAction(url=arguments['url'])
+            # ================================================
+            # CodeSearchTool
+            # ================================================
+            elif tool_call.function.name == CodeSearchTool['function']['name'] and CODE_SEARCH_AVAILABLE:
+                if 'query' not in arguments:
+                    raise FunctionCallValidationError(
+                        f'Missing required argument "query" in tool call {tool_call.function.name}'
+                    )
+                if 'repo_path' not in arguments:
+                    raise FunctionCallValidationError(
+                        f'Missing required argument "repo_path" in tool call {tool_call.function.name}'
+                    )
+                action = CodeSearchAction(
+                    query=arguments['query'],
+                    repo_path=arguments['repo_path'],
+                    extensions=arguments.get('extensions'),
+                    k=arguments.get('k', 5),
+                    thought=arguments.get('thought')
+                )
             else:
                 raise FunctionCallNotExistsError(
                     f'Tool {tool_call.function.name} is not registered. (arguments: {arguments}). Please check the tool name and retry with an existing tool.'
@@ -212,10 +240,52 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
     return actions
 
 
+# Global list to store registered tools
+_registered_tools = []
+
+def get_registered_tools() -> list:
+    """Get the list of registered tools."""
+    return _registered_tools
+
+def register_tool(
+    name: str,
+    description: str,
+    parameters: dict,
+    function: callable,
+    executor: callable,
+    event_source: str,
+) -> dict:
+    """Register a tool for function calling.
+    
+    Args:
+        name: Name of the tool
+        description: Description of the tool
+        parameters: Parameters schema for the tool
+        function: Function to call when the tool is invoked
+        executor: Function to execute the action
+        event_source: Source of the event
+        
+    Returns:
+        Dictionary with tool registration information
+    """
+    # Call the function with minimal arguments to get the action_type
+    dummy_result = function("dummy query", "/dummy/path")
+    
+    return {
+        "name": name,
+        "description": description,
+        "parameters": parameters,
+        "function": function,
+        "executor": executor,
+        "action_type": dummy_result.get("action_type", "CODE_SEARCH"),
+        "event_source": event_source,
+    }
+
 def get_tools(
     codeact_enable_browsing: bool = False,
     codeact_enable_llm_editor: bool = False,
     codeact_enable_jupyter: bool = False,
+    codeact_enable_code_search: bool = True,
 ) -> list[ChatCompletionToolParam]:
     tools = [CmdRunTool, ThinkTool, FinishTool]
     if codeact_enable_browsing:
@@ -227,4 +297,12 @@ def get_tools(
         tools.append(LLMBasedFileEditTool)
     else:
         tools.append(StrReplaceEditorTool)
+    if codeact_enable_code_search:
+        tools.append(CodeSearchTool)
+        # Register the code search tool with the function calling system
+        try:
+            from openhands_aci.rag.function_calling import register_code_search_tools
+            register_code_search_tools(lambda tool: None)  # We don't need to register it again, just make sure it's available
+        except Exception as e:
+            print(f"Failed to register code search tools: {e}")
     return tools

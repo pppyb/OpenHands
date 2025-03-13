@@ -84,9 +84,12 @@ def test_code_search_with_explicit_query(test_repo):
     config = AgentConfig()
     config.codeact_enable_code_search = True
     
-    # Create a LLM with default config
+    # Create a LLM with OpenAI config
     from openhands.core.config.llm_config import LLMConfig
-    llm = LLM(config=LLMConfig())
+    llm_config = LLMConfig()
+llm_config.provider = "openai"
+llm_config.model = "gpt-4o"
+llm = LLM(config=llm_config)
     
     # Create the agent
     agent = CodeActAgent(llm, config)
@@ -150,9 +153,12 @@ def test_code_search_with_implicit_query(test_repo):
     config = AgentConfig()
     config.codeact_enable_code_search = True
     
-    # Create a LLM with default config
+    # Create a LLM with OpenAI config
     from openhands.core.config.llm_config import LLMConfig
-    llm = LLM(config=LLMConfig())
+    llm_config = LLMConfig()
+llm_config.provider = "openai"
+llm_config.model = "gpt-4o"
+llm = LLM(config=llm_config)
     
     # Create the agent
     agent = CodeActAgent(llm, config)
@@ -216,9 +222,12 @@ def test_code_search_with_multi_intent_query(test_repo):
     config = AgentConfig()
     config.codeact_enable_code_search = True
     
-    # Create a LLM with default config
+    # Create a LLM with OpenAI config
     from openhands.core.config.llm_config import LLMConfig
-    llm = LLM(config=LLMConfig())
+    llm_config = LLMConfig()
+llm_config.provider = "openai"
+llm_config.model = "gpt-4o"
+llm = LLM(config=llm_config)
     
     # Create the agent
     agent = CodeActAgent(llm, config)

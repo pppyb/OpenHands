@@ -87,7 +87,7 @@ def test_code_search_with_explicit_query(test_repo):
     # Create a LLM with OpenAI config
     from openhands.core.config.llm_config import LLMConfig
     llm_config = LLMConfig()
-llm_config.provider = "openai"
+llm_config.custom_llm_provider = "openai"
 llm_config.model = "gpt-4o"
 llm = LLM(config=llm_config)
     
@@ -156,7 +156,7 @@ def test_code_search_with_implicit_query(test_repo):
     # Create a LLM with OpenAI config
     from openhands.core.config.llm_config import LLMConfig
     llm_config = LLMConfig()
-llm_config.provider = "openai"
+llm_config.custom_llm_provider = "openai"
 llm_config.model = "gpt-4o"
 llm = LLM(config=llm_config)
     
@@ -225,7 +225,7 @@ def test_code_search_with_multi_intent_query(test_repo):
     # Create a LLM with OpenAI config
     from openhands.core.config.llm_config import LLMConfig
     llm_config = LLMConfig()
-llm_config.provider = "openai"
+llm_config.custom_llm_provider = "openai"
 llm_config.model = "gpt-4o"
 llm = LLM(config=llm_config)
     

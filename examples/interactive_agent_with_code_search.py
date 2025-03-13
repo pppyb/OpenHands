@@ -35,7 +35,7 @@ def setup_agent() -> CodeActAgent:
     # Create a LLM with OpenAI config
     from openhands.core.config.llm_config import LLMConfig
     llm_config = LLMConfig()
-    llm_config.provider = "openai"
+    llm_config.custom_llm_provider = "openai"
     llm_config.model = "gpt-4o"
     llm = LLM(config=llm_config)
     

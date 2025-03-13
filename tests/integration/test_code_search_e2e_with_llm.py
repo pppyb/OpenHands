@@ -17,7 +17,7 @@ from openhands.agenthub.codeact_agent.codeact_agent import CodeActAgent
 from openhands.core.config.agent_config import AgentConfig
 from openhands.core.message import Message, TextContent
 from openhands.controller.state.state import State
-from openhands.events.action import CodeSearchAction, Action
+from openhands.events.action import CodeSearchAction, Action, MessageAction
 from openhands.llm.llm import LLM
 
 

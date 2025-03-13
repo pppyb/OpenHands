@@ -13,6 +13,7 @@ from litellm import (
 from openhands.agenthub.codeact_agent.tools import (
     BrowserTool,
     CmdRunTool,
+    CodeSearchTool,
     FinishTool,
     IPythonTool,
     LLMBasedFileEditTool,
@@ -32,6 +33,7 @@ from openhands.events.action import (
     BrowseInteractiveAction,
     BrowseURLAction,
     CmdRunAction,
+    CodeSearchAction,
     FileEditAction,
     FileReadAction,
     IPythonRunCellAction,
@@ -184,6 +186,45 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
                         f'Missing required argument "url" in tool call {tool_call.function.name}'
                     )
                 action = BrowseURLAction(url=arguments['url'])
+            
+            # ================================================
+            # CodeSearchTool
+            # ================================================
+            elif tool_call.function.name == CodeSearchTool['function']['name']:
+                if 'command' not in arguments:
+                    raise FunctionCallValidationError(
+                        f'Missing required argument "command" in tool call {tool_call.function.name}'
+                    )
+                
+                command = arguments['command']
+                
+                # Validate required parameters based on command
+                if command in ['initialize', 'update']:
+                    if 'repo_path' not in arguments:
+                        raise FunctionCallValidationError(
+                            f'Missing required argument "repo_path" for command "{command}" in tool call {tool_call.function.name}'
+                        )
+                elif command == 'search':
+                    if 'query' not in arguments:
+                        raise FunctionCallValidationError(
+                            f'Missing required argument "query" for command "search" in tool call {tool_call.function.name}'
+                        )
+                
+                # Create the action with all provided arguments
+                action_args = {
+                    'command': command,
+                    'repo_path': arguments.get('repo_path'),
+                    'query': arguments.get('query'),
+                    'k': arguments.get('k', 5),
+                }
+                
+                # Add optional parameters if provided
+                if 'extensions' in arguments:
+                    action_args['extensions'] = arguments['extensions']
+                if 'embedding_model' in arguments:
+                    action_args['embedding_model'] = arguments['embedding_model']
+                
+                action = CodeSearchAction(**action_args)
             else:
                 raise FunctionCallNotExistsError(
                     f'Tool {tool_call.function.name} is not registered. (arguments: {arguments}). Please check the tool name and retry with an existing tool.'
@@ -216,6 +257,7 @@ def get_tools(
     codeact_enable_browsing: bool = False,
     codeact_enable_llm_editor: bool = False,
     codeact_enable_jupyter: bool = False,
+    codeact_enable_code_search: bool = False,
 ) -> list[ChatCompletionToolParam]:
     tools = [CmdRunTool, ThinkTool, FinishTool]
     if codeact_enable_browsing:
@@ -227,4 +269,6 @@ def get_tools(
         tools.append(LLMBasedFileEditTool)
     else:
         tools.append(StrReplaceEditorTool)
+    if codeact_enable_code_search:
+        tools.append(CodeSearchTool)
     return tools

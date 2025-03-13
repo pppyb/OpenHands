@@ -32,8 +32,9 @@ def setup_agent() -> CodeActAgent:
     config = AgentConfig()
     config.codeact_enable_code_search = True
     
-    # Create a LLM
-    llm = LLM()
+    # Create a LLM with default config
+    from openhands.core.config.llm_config import LLMConfig
+    llm = LLM(config=LLMConfig())
     
     # Create the agent
     agent = CodeActAgent(llm, config)

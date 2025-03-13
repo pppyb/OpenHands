@@ -55,8 +55,9 @@ def test_code_search_e2e(test_repo):
     config = AgentConfig()
     config.codeact_enable_code_search = True
     
-    # Create a real OpenAI LLM
-    llm = OpenAILLM()
+    # Create a LLM with default config
+    from openhands.core.config.llm_config import LLMConfig
+    llm = LLM(config=LLMConfig())
     
     # Create the agent
     agent = CodeActAgent(llm, config)

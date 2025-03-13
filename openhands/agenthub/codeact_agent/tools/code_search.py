@@ -29,6 +29,7 @@ class CodeSearchTool(dict):
         super().__init__()
         
         # Set up the tool definition
+        self["type"] = "function"
         self["function"] = {
             "name": "code_search",
             "description": (

@@ -14,54 +14,62 @@ from openhands.core.logger import openhands_logger as logger
 from openhands.events.action import CodeSearchAction
 
 
-class CodeSearchTool:
+class CodeSearchTool(dict):
     """Tool for code search functionality.
     
     This tool enables searching code repositories using natural language queries.
     It integrates with the CodeSearchAction to provide a seamless experience for users.
+    
+    Note: This class inherits from dict to make it JSON serializable.
     """
 
     def __init__(self):
         """Initialize the code search tool."""
-        self.name = "code_search"
-        self.description = (
-            "Search code in a repository using natural language queries. "
-            "Use this tool when the user wants to find specific code, functions, or implementations in a codebase. "
-            "First initialize with a repository path, then search with a query. "
-            "This tool can help find relevant code snippets, functions, or files based on natural language descriptions. "
-            "Examples of when to use this tool: "
-            "1. When the user asks to find code that implements a specific feature "
-            "2. When the user wants to search for functions related to a specific topic "
-            "3. When the user needs to locate where certain functionality is implemented "
-            "4. When the user asks questions like 'where is the code that handles X' or 'find functions related to Y'"
-        )
-        self.parameters = {
-            "type": "object",
-            "properties": {
-                "command": {
-                    "type": "string",
-                    "enum": ["initialize", "search"],
-                    "description": "Command to execute. 'initialize' to index a repository, 'search' to search in an indexed repository.",
+        # Initialize as a dict to make it JSON serializable
+        super().__init__()
+        
+        # Set up the tool definition
+        self["function"] = {
+            "name": "code_search",
+            "description": (
+                "Search code in a repository using natural language queries. "
+                "Use this tool when the user wants to find specific code, functions, or implementations in a codebase. "
+                "First initialize with a repository path, then search with a query. "
+                "This tool can help find relevant code snippets, functions, or files based on natural language descriptions. "
+                "Examples of when to use this tool: "
+                "1. When the user asks to find code that implements a specific feature "
+                "2. When the user wants to search for functions related to a specific topic "
+                "3. When the user needs to locate where certain functionality is implemented "
+                "4. When the user asks questions like 'where is the code that handles X' or 'find functions related to Y'"
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "enum": ["initialize", "search"],
+                        "description": "Command to execute. 'initialize' to index a repository, 'search' to search in an indexed repository.",
+                    },
+                    "repo_path": {
+                        "type": "string",
+                        "description": "Path to the git repository. Required for both 'initialize' and 'search' commands. Can be absolute or relative path.",
+                    },
+                    "query": {
+                        "type": "string",
+                        "description": "Search query in natural language. Required for 'search' command. Example: 'function that handles API authentication' or 'code that processes user input'.",
+                    },
+                    "extensions": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of file extensions to include (e.g. ['.py', '.js']). If not provided, common code file extensions will be used.",
+                    },
+                    "k": {
+                        "type": "integer",
+                        "description": "Number of results to return for 'search' command. Default is 5.",
+                    },
                 },
-                "repo_path": {
-                    "type": "string",
-                    "description": "Path to the git repository. Required for both 'initialize' and 'search' commands. Can be absolute or relative path.",
-                },
-                "query": {
-                    "type": "string",
-                    "description": "Search query in natural language. Required for 'search' command. Example: 'function that handles API authentication' or 'code that processes user input'.",
-                },
-                "extensions": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "List of file extensions to include (e.g. ['.py', '.js']). If not provided, common code file extensions will be used.",
-                },
-                "k": {
-                    "type": "integer",
-                    "description": "Number of results to return for 'search' command. Default is 5.",
-                },
-            },
-            "required": ["command", "repo_path"],
+                "required": ["command", "repo_path"]
+            }
         }
 
     def __call__(self, **kwargs) -> Dict[str, Any]:

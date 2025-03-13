@@ -15,7 +15,7 @@ from openhands.core.message import Message, TextContent
 from openhands.controller.state.state import State
 from openhands.events.action import CodeSearchAction
 from openhands.llm.llm import LLM
-from openhands.llm.openai import OpenAILLM
+# Remove OpenAILLM import as we're using LLM directly
 
 
 @pytest.fixture

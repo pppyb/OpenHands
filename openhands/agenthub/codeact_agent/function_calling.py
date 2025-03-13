@@ -13,6 +13,7 @@ from litellm import (
 from openhands.agenthub.codeact_agent.tools import (
     BrowserTool,
     CmdRunTool,
+    CodeSearchTool,
     FinishTool,
     IPythonTool,
     LLMBasedFileEditTool,
@@ -32,6 +33,7 @@ from openhands.events.action import (
     BrowseInteractiveAction,
     BrowseURLAction,
     CmdRunAction,
+    CodeSearchAction,
     FileEditAction,
     FileReadAction,
     IPythonRunCellAction,
@@ -104,6 +106,45 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
                     inputs=arguments,
                 )
 
+            # ================================================
+            # CodeSearchTool
+            # ================================================
+            elif tool_call.function.name == 'code_search':
+                if 'command' not in arguments:
+                    raise FunctionCallValidationError(
+                        f'Missing required argument "command" in tool call {tool_call.function.name}'
+                    )
+                if 'repo_path' not in arguments:
+                    raise FunctionCallValidationError(
+                        f'Missing required argument "repo_path" in tool call {tool_call.function.name}'
+                    )
+                
+                command = arguments['command']
+                repo_path = arguments['repo_path']
+                
+                if command == 'initialize':
+                    action = CodeSearchAction(
+                        command=command,
+                        repo_path=repo_path,
+                        extensions=arguments.get('extensions'),
+                        embedding_model=arguments.get('embedding_model'),
+                    )
+                elif command == 'search':
+                    if 'query' not in arguments:
+                        raise FunctionCallValidationError(
+                            f'Missing required argument "query" in tool call {tool_call.function.name} for search command'
+                        )
+                    action = CodeSearchAction(
+                        command=command,
+                        repo_path=repo_path,
+                        query=arguments['query'],
+                        k=arguments.get('k', 5),
+                    )
+                else:
+                    raise FunctionCallValidationError(
+                        f'Unknown command "{command}" in tool call {tool_call.function.name}'
+                    )
+            
             # ================================================
             # AgentFinishAction
             # ================================================
@@ -216,6 +257,7 @@ def get_tools(
     codeact_enable_browsing: bool = False,
     codeact_enable_llm_editor: bool = False,
     codeact_enable_jupyter: bool = False,
+    codeact_enable_code_search: bool = False,
 ) -> list[ChatCompletionToolParam]:
     tools = [CmdRunTool, ThinkTool, FinishTool]
     if codeact_enable_browsing:
@@ -227,4 +269,6 @@ def get_tools(
         tools.append(LLMBasedFileEditTool)
     else:
         tools.append(StrReplaceEditorTool)
+    if codeact_enable_code_search:
+        tools.append(CodeSearchTool())
     return tools

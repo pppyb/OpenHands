@@ -48,6 +48,7 @@ anthropic = {extras = ["vertex"], version = "*"}
 grep-ast = "0.3.3"
 tree-sitter = "^0.24.0"
 bashlex = "^0.18"
+openhands-aci = "^0.1.4"
 pyjwt = "^2.9.0"
 dirhash = "*"
 python-frontmatter = "^1.1.0"

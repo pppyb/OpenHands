@@ -93,14 +93,12 @@ def test_code_search_with_explicit_query(test_repo):
     
     # Create a state with an explicit code search query
     state = State()
-    state.add_message(
-        Message(
-            role="user",
-            content=[
-                TextContent(
-                    text=f"Search for code that handles API keys in the repository at {test_repo}"
-                )
-            ],
+    # Add a message action to the state
+    from openhands.events.event import EventSource
+    state.history.append(
+        MessageAction(
+            content=f"Search for code that handles API keys in the repository at {test_repo}",
+            source=EventSource.USER
         )
     )
     
@@ -162,14 +160,12 @@ def test_code_search_with_implicit_query(test_repo):
     
     # Create a state with an implicit code search query
     state = State()
-    state.add_message(
-        Message(
-            role="user",
-            content=[
-                TextContent(
-                    text=f"I need to understand how API keys are handled in the codebase at {test_repo}. Can you help me find the relevant code?"
-                )
-            ],
+    # Add a message action to the state
+    from openhands.events.event import EventSource
+    state.history.append(
+        MessageAction(
+            content=f"I need to understand how API keys are handled in the codebase at {test_repo}. Can you help me find the relevant code?",
+            source=EventSource.USER
         )
     )
     
@@ -231,14 +227,12 @@ def test_code_search_with_multi_intent_query(test_repo):
     
     # Create a state with a multi-intent query
     state = State()
-    state.add_message(
-        Message(
-            role="user",
-            content=[
-                TextContent(
-                    text=f"I need to understand the codebase at {test_repo}. First, can you find functions that add numbers? Then, tell me about the overall structure of the repository."
-                )
-            ],
+    # Add a message action to the state
+    from openhands.events.event import EventSource
+    state.history.append(
+        MessageAction(
+            content=f"I need to understand the codebase at {test_repo}. First, can you find functions that add numbers? Then, tell me about the overall structure of the repository.",
+            source=EventSource.USER
         )
     )
     

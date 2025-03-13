@@ -64,14 +64,12 @@ def test_code_search_e2e(test_repo):
     
     # Create a state with a user message asking to search for code
     state = State()
-    state.add_message(
-        Message(
-            role="user",
-            content=[
-                TextContent(
-                    text=f"Search for a function that adds two numbers in the repository at {test_repo}"
-                )
-            ],
+    # Add a message action to the state
+    from openhands.events.event import EventSource
+    state.history.append(
+        MessageAction(
+            content=f"Search for a function that adds two numbers in the repository at {test_repo}",
+            source=EventSource.USER
         )
     )
     

@@ -50,12 +50,11 @@ def run_interactive_session(agent: CodeActAgent, initial_message: Optional[str] 
     # Add initial message if provided
     if initial_message:
         from openhands.events.event import EventSource
-        state.history.append(
-            MessageAction(
-                content=initial_message,
-                _source=EventSource.USER
-            )
+        message = MessageAction(
+            content=initial_message
         )
+        message._source = EventSource.USER
+        state.history.append(message)
         print(f"User: {initial_message}")
     
     # Main interaction loop
@@ -86,12 +85,11 @@ def run_interactive_session(agent: CodeActAgent, initial_message: Optional[str] 
             
             # Add the user's message to the state
             from openhands.events.event import EventSource
-            state.history.append(
-                MessageAction(
-                    content=user_input,
-                    _source=EventSource.USER
-                )
+            message = MessageAction(
+                content=user_input
             )
+            message._source = EventSource.USER
+            state.history.append(message)
         else:
             # For other actions, execute them and add the result to the state
             print(f"Agent is executing: {action.__class__.__name__}")

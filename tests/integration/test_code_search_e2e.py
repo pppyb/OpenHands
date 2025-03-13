@@ -66,12 +66,11 @@ def test_code_search_e2e(test_repo):
     state = State()
     # Add a message action to the state
     from openhands.events.event import EventSource
-    state.history.append(
-        MessageAction(
-            content=f"Search for a function that adds two numbers in the repository at {test_repo}",
-            _source=EventSource.USER
-        )
+    message = MessageAction(
+        content=f"Search for a function that adds two numbers in the repository at {test_repo}"
     )
+    message._source = EventSource.USER
+    state.history.append(message)
     
     # Execute the agent step
     action = agent.step(state)

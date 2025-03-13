@@ -95,12 +95,11 @@ def test_code_search_with_explicit_query(test_repo):
     state = State()
     # Add a message action to the state
     from openhands.events.event import EventSource
-    state.history.append(
-        MessageAction(
-            content=f"Search for code that handles API keys in the repository at {test_repo}",
-            _source=EventSource.USER
-        )
+    message = MessageAction(
+        content=f"Search for code that handles API keys in the repository at {test_repo}"
     )
+    message._source = EventSource.USER
+    state.history.append(message)
     
     # Run the agent for multiple steps to complete the task
     max_steps = 5
@@ -162,12 +161,11 @@ def test_code_search_with_implicit_query(test_repo):
     state = State()
     # Add a message action to the state
     from openhands.events.event import EventSource
-    state.history.append(
-        MessageAction(
-            content=f"I need to understand how API keys are handled in the codebase at {test_repo}. Can you help me find the relevant code?",
-            _source=EventSource.USER
-        )
+    message = MessageAction(
+        content=f"I need to understand how API keys are handled in the codebase at {test_repo}. Can you help me find the relevant code?"
     )
+    message._source = EventSource.USER
+    state.history.append(message)
     
     # Run the agent for multiple steps to complete the task
     max_steps = 5
@@ -229,12 +227,11 @@ def test_code_search_with_multi_intent_query(test_repo):
     state = State()
     # Add a message action to the state
     from openhands.events.event import EventSource
-    state.history.append(
-        MessageAction(
-            content=f"I need to understand the codebase at {test_repo}. First, can you find functions that add numbers? Then, tell me about the overall structure of the repository.",
-            _source=EventSource.USER
-        )
+    message = MessageAction(
+        content=f"I need to understand the codebase at {test_repo}. First, can you find functions that add numbers? Then, tell me about the overall structure of the repository."
     )
+    message._source = EventSource.USER
+    state.history.append(message)
     
     # Run the agent for multiple steps to complete the task
     max_steps = 10

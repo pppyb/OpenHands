@@ -26,8 +26,14 @@ class CodeSearchTool:
         self.name = "code_search"
         self.description = (
             "Search code in a repository using natural language queries. "
+            "Use this tool when the user wants to find specific code, functions, or implementations in a codebase. "
             "First initialize with a repository path, then search with a query. "
-            "This tool can help find relevant code snippets, functions, or files based on natural language descriptions."
+            "This tool can help find relevant code snippets, functions, or files based on natural language descriptions. "
+            "Examples of when to use this tool: "
+            "1. When the user asks to find code that implements a specific feature "
+            "2. When the user wants to search for functions related to a specific topic "
+            "3. When the user needs to locate where certain functionality is implemented "
+            "4. When the user asks questions like 'where is the code that handles X' or 'find functions related to Y'"
         )
         self.parameters = {
             "type": "object",

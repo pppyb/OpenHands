@@ -14,11 +14,11 @@ import pytest
 from git import Repo
 
 from openhands.agenthub.codeact_agent.codeact_agent import CodeActAgent
-from openhands.core.config import AgentConfig
+from openhands.core.config.agent_config import AgentConfig
 from openhands.core.message import Message, TextContent
 from openhands.controller.state.state import State
 from openhands.events.action import CodeSearchAction, Action
-from openhands.llm.openai import OpenAILLM
+from openhands.llm.llm import LLM
 
 
 @pytest.fixture
@@ -84,8 +84,8 @@ def test_code_search_with_explicit_query(test_repo):
     config = AgentConfig()
     config.codeact_enable_code_search = True
     
-    # Create a real OpenAI LLM
-    llm = OpenAILLM()
+    # Create a LLM
+    llm = LLM()
     
     # Create the agent
     agent = CodeActAgent(llm, config)
@@ -152,8 +152,8 @@ def test_code_search_with_implicit_query(test_repo):
     config = AgentConfig()
     config.codeact_enable_code_search = True
     
-    # Create a real OpenAI LLM
-    llm = OpenAILLM()
+    # Create a LLM
+    llm = LLM()
     
     # Create the agent
     agent = CodeActAgent(llm, config)
@@ -220,8 +220,8 @@ def test_code_search_with_multi_intent_query(test_repo):
     config = AgentConfig()
     config.codeact_enable_code_search = True
     
-    # Create a real OpenAI LLM
-    llm = OpenAILLM()
+    # Create a LLM
+    llm = LLM()
     
     # Create the agent
     agent = CodeActAgent(llm, config)

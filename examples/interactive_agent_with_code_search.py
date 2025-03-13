@@ -11,11 +11,11 @@ import sys
 from typing import Optional
 
 from openhands.agenthub.codeact_agent.codeact_agent import CodeActAgent
-from openhands.core.config import AgentConfig
+from openhands.core.config.agent_config import AgentConfig
 from openhands.core.message import Message, TextContent
 from openhands.controller.state.state import State
 from openhands.events.action import Action, MessageAction
-from openhands.llm.openai import OpenAILLM
+from openhands.llm.llm import LLM
 
 
 def setup_agent() -> CodeActAgent:
@@ -32,8 +32,8 @@ def setup_agent() -> CodeActAgent:
     config = AgentConfig()
     config.codeact_enable_code_search = True
     
-    # Create a real OpenAI LLM
-    llm = OpenAILLM()
+    # Create a LLM
+    llm = LLM()
     
     # Create the agent
     agent = CodeActAgent(llm, config)

@@ -98,7 +98,7 @@ def test_code_search_with_explicit_query(test_repo):
     state.history.append(
         MessageAction(
             content=f"Search for code that handles API keys in the repository at {test_repo}",
-            source=EventSource.USER
+            _source=EventSource.USER
         )
     )
     
@@ -165,7 +165,7 @@ def test_code_search_with_implicit_query(test_repo):
     state.history.append(
         MessageAction(
             content=f"I need to understand how API keys are handled in the codebase at {test_repo}. Can you help me find the relevant code?",
-            source=EventSource.USER
+            _source=EventSource.USER
         )
     )
     
@@ -232,7 +232,7 @@ def test_code_search_with_multi_intent_query(test_repo):
     state.history.append(
         MessageAction(
             content=f"I need to understand the codebase at {test_repo}. First, can you find functions that add numbers? Then, tell me about the overall structure of the repository.",
-            source=EventSource.USER
+            _source=EventSource.USER
         )
     )
     

@@ -69,7 +69,7 @@ def test_code_search_e2e(test_repo):
     state.history.append(
         MessageAction(
             content=f"Search for a function that adds two numbers in the repository at {test_repo}",
-            source=EventSource.USER
+            _source=EventSource.USER
         )
     )
     

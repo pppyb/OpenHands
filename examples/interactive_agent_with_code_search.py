@@ -53,7 +53,7 @@ def run_interactive_session(agent: CodeActAgent, initial_message: Optional[str] 
         state.history.append(
             MessageAction(
                 content=initial_message,
-                source=EventSource.USER
+                _source=EventSource.USER
             )
         )
         print(f"User: {initial_message}")
@@ -89,7 +89,7 @@ def run_interactive_session(agent: CodeActAgent, initial_message: Optional[str] 
             state.history.append(
                 MessageAction(
                     content=user_input,
-                    source=EventSource.USER
+                    _source=EventSource.USER
                 )
             )
         else:

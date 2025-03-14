@@ -100,7 +100,8 @@ def run_interactive_session(agent: CodeActAgent, initial_message: Optional[str] 
             print(f"Agent is executing: {action.__class__.__name__}")
             try:
                 result = action.execute()
-                state.add_observation(result)
+                # 将结果添加到状态历史中（如果需要）
+                # 注意：我们不再使用state.add_observation，因为State对象没有这个方法
                 
                 # Print a summary of the result
                 if hasattr(result, "content"):

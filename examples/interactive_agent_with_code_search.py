@@ -70,8 +70,8 @@ def run_interactive_session(agent: CodeActAgent, initial_message: Optional[str] 
             print("Agent returned no action. Exiting.")
             break
         
-        # Add the action to the state
-        state.add_action(action)
+        # Add the action to the state history
+        state.history.append(action)
         
         # Handle different types of actions
         if isinstance(action, MessageAction):

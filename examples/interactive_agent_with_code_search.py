@@ -47,12 +47,15 @@ def setup_agent() -> CodeActAgent:
 
 def run_interactive_session(agent: CodeActAgent, initial_message: Optional[str] = None):
     """Run an interactive session with the agent."""
+    # Import necessary modules
+    from openhands.events.event import EventSource
+    from openhands.events.action import MessageAction, CodeSearchAction
+    
     # Create a state
     state = State()
     
     # Add initial message if provided
     if initial_message:
-        from openhands.events.event import EventSource
         message = MessageAction(
             content=initial_message
         )
@@ -87,7 +90,6 @@ def run_interactive_session(agent: CodeActAgent, initial_message: Optional[str] 
                 break
             
             # Add the user's message to the state
-            from openhands.events.event import EventSource
             message = MessageAction(
                 content=user_input
             )
@@ -120,8 +122,6 @@ def run_interactive_session(agent: CodeActAgent, initial_message: Optional[str] 
                     print("Action completed.")
             except Exception as e:
                 print(f"Error executing action: {e}")
-                # 创建一个错误消息动作并添加到状态
-                from openhands.events.action import MessageAction
                 error_message = MessageAction(content=f"Error: {str(e)}")
                 state.history.append(error_message)
 

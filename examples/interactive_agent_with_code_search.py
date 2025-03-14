@@ -120,7 +120,10 @@ def run_interactive_session(agent: CodeActAgent, initial_message: Optional[str] 
                     print("Action completed.")
             except Exception as e:
                 print(f"Error executing action: {e}")
-                state.add_observation({"status": "error", "message": str(e)})
+                # 创建一个错误消息动作并添加到状态
+                from openhands.events.action import MessageAction
+                error_message = MessageAction(content=f"Error: {str(e)}")
+                state.history.append(error_message)
 
 
 def main():

@@ -6,6 +6,7 @@ from openhands.events.observation.agent import (
     AgentThinkObservation,
 )
 from openhands.events.observation.browse import BrowserOutputObservation
+from openhands.events.observation.code_search import CodeSearchObservation
 from openhands.events.observation.commands import (
     CmdOutputMetadata,
     CmdOutputObservation,
@@ -40,6 +41,7 @@ observations = (
     UserRejectObservation,
     AgentCondensationObservation,
     AgentThinkObservation,
+    CodeSearchObservation,
 )
 
 OBSERVATION_TYPE_TO_CLASS = {

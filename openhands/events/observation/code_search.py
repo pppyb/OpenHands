@@ -16,6 +16,8 @@ class CodeSearchObservation(Observation):
     It contains the results of the search or initialization.
     """
     
+    observation = "code_search"
+    
     def __init__(
         self,
         status: str,

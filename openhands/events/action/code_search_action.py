@@ -25,6 +25,8 @@ class CodeSearchAction(Action):
     This action enables searching code repositories using natural language queries.
     It supports both initialization of code search indexes and searching through indexed repositories.
     """
+    
+    action = "code_search"
 
     def __init__(
         self,

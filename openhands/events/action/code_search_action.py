@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Any
 
 from openhands.core.logger import openhands_logger as logger
 from openhands.events.action.action import Action
+from openhands.events.observation.code_search import CodeSearchObservation
 from openhands.integrations.openhands_aci.code_search import (
     initialize_code_search,
     search_code,
@@ -113,22 +114,43 @@ class CodeSearchAction(Action):
                 else:
                     logger.error(f"Code search initialization failed: {result.get('message', 'Unknown error')}")
                 
-                return result
+                # Create and return a CodeSearchObservation
+                return CodeSearchObservation(
+                    status=result["status"],
+                    message=result.get("message", ""),
+                    num_documents=result.get("num_documents"),
+                    command=self.command,
+                    repo_path=self.repo_path,
+                )
             except Exception as e:
                 error_msg = f"Error initializing code search: {str(e)}"
                 logger.error(error_msg)
-                return {"status": "error", "message": error_msg}
+                return CodeSearchObservation(
+                    status="error",
+                    message=error_msg,
+                    command=self.command,
+                    repo_path=self.repo_path,
+                )
         
         elif self.command == "search":
             if not self.query:
-                return {"status": "error", "message": "query is required for search command"}
+                return CodeSearchObservation(
+                    status="error",
+                    message="query is required for search command",
+                    command=self.command,
+                    repo_path=self.repo_path,
+                )
             
             # If repo_path is provided, construct the save directory
             if self.repo_path:
                 repo_name = Path(self.repo_path).name
                 save_dir = f"/tmp/code_search/_{repo_name}"
             else:
-                return {"status": "error", "message": "repo_path is required for search command"}
+                return CodeSearchObservation(
+                    status="error",
+                    message="repo_path is required for search command",
+                    command=self.command,
+                )
             
             # Check if the save directory exists
             if not os.path.exists(save_dir):
@@ -157,38 +179,74 @@ class CodeSearchAction(Action):
                 else:
                     logger.error(f"Code search failed: {result.get('message', 'Unknown error')}")
                 
-                return result
+                # Create and return a CodeSearchObservation
+                return CodeSearchObservation(
+                    status=result["status"],
+                    message=result.get("message", ""),
+                    results=result.get("results", []),
+                    command=self.command,
+                    repo_path=self.repo_path,
+                    query=self.query,
+                )
             except Exception as e:
                 error_msg = f"Error searching code: {str(e)}"
                 logger.error(error_msg)
-                return {"status": "error", "message": error_msg}
+                return CodeSearchObservation(
+                    status="error",
+                    message=error_msg,
+                    command=self.command,
+                    repo_path=self.repo_path,
+                    query=self.query,
+                )
         
         else:
-            return {"status": "error", "message": f"Unknown command: {self.command}"}
+            return CodeSearchObservation(
+                status="error",
+                message=f"Unknown command: {self.command}",
+                command=self.command,
+                repo_path=self.repo_path,
+            )
     
-    def execute_initialize(self) -> Dict[str, Any]:
+    def execute_initialize(self) -> CodeSearchObservation:
         """Execute the initialize command.
         
         This is a helper method used when search is called but the repository hasn't been indexed yet.
         
         Returns:
-            Dictionary with status and message.
+            CodeSearchObservation with the result of the initialization.
         """
         if not self.repo_path:
-            return {"status": "error", "message": "repo_path is required for initialize command"}
+            return CodeSearchObservation(
+                status="error",
+                message="repo_path is required for initialize command",
+                command="initialize",
+            )
         
         # Create a save directory based on the repository name
         repo_name = Path(self.repo_path).name
         save_dir = f"/tmp/code_search/_{repo_name}"
         
         try:
-            return initialize_code_search(
+            result = initialize_code_search(
                 repo_path=self.repo_path,
                 save_dir=save_dir,
                 extensions=self.extensions,
                 embedding_model=self.embedding_model,
             )
+            
+            return CodeSearchObservation(
+                status=result["status"],
+                message=result.get("message", ""),
+                num_documents=result.get("num_documents"),
+                command="initialize",
+                repo_path=self.repo_path,
+            )
         except Exception as e:
             error_msg = f"Error initializing code search: {str(e)}"
             logger.error(error_msg)
-            return {"status": "error", "message": error_msg}
+            return CodeSearchObservation(
+                status="error",
+                message=error_msg,
+                command="initialize",
+                repo_path=self.repo_path,
+            )

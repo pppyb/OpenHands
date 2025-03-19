@@ -80,11 +80,11 @@ def code_search(action: CodeSearchAction):
             return CodeSearchObservation(
                 query=action.query,
                 results=[],
+                content=content,
                 status="success",
                 message=f"Successfully indexed {result.get('num_documents', 0)} files from {repo_path}",
                 num_documents=result.get("num_documents", 0),
                 repo_path=repo_path,
-                content=content,
             )
         else:
             # Update the index
@@ -130,7 +130,7 @@ def code_search(action: CodeSearchAction):
     return CodeSearchObservation(
         query=action.query,
         results=formatted_results,
+        content=content_str,
         status="success",
         repo_path=action.repo_path,
-        content=content_str,
     )

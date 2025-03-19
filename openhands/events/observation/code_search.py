@@ -26,14 +26,15 @@ class CodeSearchObservation(Observation):
         content: The content of the observation (required by Observation base class).
     """
 
+    # Required parameters must come before parameters with default values
     query: str
     results: List[Dict[str, Any]]
+    content: str  # Required by Observation base class
     status: str = "success"
     message: str = ""
     num_documents: Optional[int] = None
     repo_path: Optional[str] = None
     observation: str = ObservationType.CODE_SEARCH
-    content: str = ""  # Required by Observation base class
 
     @property
     def _formatted_content(self) -> str:

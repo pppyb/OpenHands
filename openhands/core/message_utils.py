@@ -23,6 +23,7 @@ from openhands.events.observation import (
     AgentThinkObservation,
     BrowserOutputObservation,
     CmdOutputObservation,
+    CodeSearchObservation,
     FileEditObservation,
     FileReadObservation,
     IPythonRunCellObservation,
@@ -338,6 +339,9 @@ def get_observation_message(
         text += '\n[Last action has been rejected by the user]'
         message = Message(role='user', content=[TextContent(text=text)])
     elif isinstance(obs, AgentCondensationObservation):
+        text = truncate_content(obs.content, max_message_chars)
+        message = Message(role='user', content=[TextContent(text=text)])
+    elif isinstance(obs, CodeSearchObservation):
         text = truncate_content(obs.content, max_message_chars)
         message = Message(role='user', content=[TextContent(text=text)])
     else:

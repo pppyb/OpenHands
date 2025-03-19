@@ -1,0 +1,8 @@
+# Baseline configuration for SWE Bench evaluation (without code search)
+
+[agent]
+codeact_enable_code_search = false
+
+[llm]
+model = "gpt-4-1106-preview"
+temperature = 0.0

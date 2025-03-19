@@ -225,7 +225,7 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
             # ================================================
             # CodeSearchTool
             # ================================================
-            elif tool_call.function.name == CodeSearchTool.function.name:
+            elif tool_call.function.name == CodeSearchTool['function']['name']:
                 if 'query' not in arguments:
                     raise FunctionCallValidationError(
                         f'Missing required argument "query" in tool call {tool_call.function.name}'

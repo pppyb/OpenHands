@@ -15,7 +15,8 @@ from openhands.events.observation.error import ErrorObservation
 from openhands.utils.tenacity_stop import stop_if_should_exit
 
 import tenacity
-from openhands_aci.code_search import initialize_code_search, search_code, update_code_search
+from openhands_aci.code_search import initialize_code_search, search_code
+from openhands_aci.code_search.tools import update_code_search
 
 
 def return_error(retry_state: tenacity.RetryCallState):

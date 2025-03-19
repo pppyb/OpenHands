@@ -340,6 +340,11 @@ The agent configuration options are defined in the `[agent]` and `[agent.<agent_
   - Default: `false`
   - Description: Whether Jupyter is enabled in the action space
 
+- `codeact_enable_code_search`
+  - Type: `bool`
+  - Default: `false`
+  - Description: Whether code search is enabled in the action space. Only works with function calling.
+
 - `enable_history_truncation`
   - Type: `bool`
   - Default: `true`

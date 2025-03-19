@@ -1,0 +1,15 @@
+# Experimental configuration for SWE Bench evaluation (with code search)
+
+[agent]
+codeact_enable_code_search = true
+
+[code_search]
+enable_code_search = true
+embedding_model = "BAAI/bge-base-en-v1.5"
+default_save_dir = ".code_search_index"
+default_extensions = [".py", ".js", ".ts", ".java", ".c", ".cpp", ".h", ".hpp"]
+default_results_count = 5
+
+[llm]
+model = "gpt-4-1106-preview"
+temperature = 0.0

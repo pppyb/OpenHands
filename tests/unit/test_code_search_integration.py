@@ -168,13 +168,12 @@ def test_agent_step_with_code_search(mock_code_search, agent: CodeActAgent, mock
         }
     ]
     
-    # Create a CodeSearchObservation with content parameter
-    content_str = "Found 1 result for query: 'function that handles HTTP requests'"
+    # Create a CodeSearchObservation without content parameter
+    # content is a property method, not a constructor parameter
     obs = CodeSearchObservation(
         query="function that handles HTTP requests",
         results=mock_results,
-        status="success",
-        content=content_str
+        status="success"
     )
     mock_code_search.return_value = obs
 
@@ -239,13 +238,12 @@ def test_agent_handles_code_search_response(mock_code_search, agent: CodeActAgen
         }
     ]
     
-    # Create a CodeSearchObservation with content parameter
-    content_str = "Found 1 result for query: 'function that handles HTTP requests'"
+    # Create a CodeSearchObservation without content parameter
+    # content is a property method, not a constructor parameter
     obs = CodeSearchObservation(
         query="function that handles HTTP requests",
         results=mock_results,
-        status="success",
-        content=content_str
+        status="success"
     )
     mock_code_search.return_value = obs
 
@@ -270,8 +268,7 @@ def test_agent_handles_code_search_response(mock_code_search, agent: CodeActAgen
     observation = CodeSearchObservation(
         query="function that handles HTTP requests",
         results=mock_results,
-        status="success",
-        content=content_str
+        status="success"
     )
     mock_state.history = [action, observation]
 

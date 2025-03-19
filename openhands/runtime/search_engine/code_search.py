@@ -15,7 +15,8 @@ from openhands.events.observation.error import ErrorObservation
 from openhands.utils.tenacity_stop import stop_if_should_exit
 
 import tenacity
-from openhands_aci.code_search import initialize_code_search, search_code, update_code_search
+from openhands_aci.code_search import initialize_code_search, search_code
+from openhands_aci.code_search.tools import update_code_search
 
 
 def return_error(retry_state: tenacity.RetryCallState):
@@ -75,6 +76,7 @@ def code_search(action: CodeSearchAction):
                 return ErrorObservation(content=result["message"])
             
             # Return initialization result
+            content = f"Successfully indexed {result.get('num_documents', 0)} files from {repo_path}"
             return CodeSearchObservation(
                 query=action.query,
                 results=[],
@@ -82,6 +84,7 @@ def code_search(action: CodeSearchAction):
                 message=f"Successfully indexed {result.get('num_documents', 0)} files from {repo_path}",
                 num_documents=result.get("num_documents", 0),
                 repo_path=repo_path,
+                content=content,
             )
         else:
             # Update the index
@@ -113,10 +116,21 @@ def code_search(action: CodeSearchAction):
             "content": result["content"],
         })
     
+    # Format the content for the observation
+    content_str = f"Found {len(formatted_results)} results for query: '{action.query}'"
+    if formatted_results:
+        content_str += "\n\nResults:"
+        for i, result in enumerate(formatted_results, 1):
+            content_str += f"\n\n{i}. {result.get('file', 'Unknown')} (score: {result.get('score', 0):.3f})"
+            content = result.get('content', '')
+            if content:
+                content_str += f"\n{'-' * 80}\n{content}"
+    
     # Return search results
     return CodeSearchObservation(
         query=action.query,
         results=formatted_results,
         status="success",
         repo_path=action.repo_path,
+        content=content_str,
     )

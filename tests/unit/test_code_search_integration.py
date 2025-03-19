@@ -66,12 +66,12 @@ def test_get_tools_with_code_search():
 def test_code_search_tool_definition():
     """Test that the CodeSearchTool is defined correctly."""
     assert CodeSearchTool['type'] == 'function'
-    assert CodeSearchTool.function.name == 'code_search'
-    assert 'query' in CodeSearchTool.function.parameters['properties']
-    assert 'repo_path' in CodeSearchTool.function.parameters['properties']
-    assert 'extensions' in CodeSearchTool.function.parameters['properties']
-    assert 'k' in CodeSearchTool.function.parameters['properties']
-    assert CodeSearchTool.function.parameters['required'] == ['query']
+    assert CodeSearchTool['function']['name'] == 'code_search'
+    assert 'query' in CodeSearchTool['function']['parameters']['properties']
+    assert 'repo_path' in CodeSearchTool['function']['parameters']['properties']
+    assert 'extensions' in CodeSearchTool['function']['parameters']['properties']
+    assert 'k' in CodeSearchTool['function']['parameters']['properties']
+    assert CodeSearchTool['function']['parameters']['required'] == ['query']
 
 
 def test_response_to_actions_code_search():
@@ -167,11 +167,15 @@ def test_agent_step_with_code_search(mock_code_search, agent: CodeActAgent, mock
             "content": "def handle_http_request():\n    pass",
         }
     ]
-    mock_code_search.return_value = CodeSearchObservation(
+    
+    # Create a CodeSearchObservation without content parameter
+    # content is a property method, not a constructor parameter
+    obs = CodeSearchObservation(
         query="function that handles HTTP requests",
         results=mock_results,
-        status="success",
+        status="success"
     )
+    mock_code_search.return_value = obs
 
     # Create a CodeSearchAction
     action = CodeSearchAction(
@@ -233,11 +237,15 @@ def test_agent_handles_code_search_response(mock_code_search, agent: CodeActAgen
             "content": "def handle_http_request():\n    pass",
         }
     ]
-    mock_code_search.return_value = CodeSearchObservation(
+    
+    # Create a CodeSearchObservation without content parameter
+    # content is a property method, not a constructor parameter
+    obs = CodeSearchObservation(
         query="function that handles HTTP requests",
         results=mock_results,
-        status="success",
+        status="success"
     )
+    mock_code_search.return_value = obs
 
     # Set up the state
     mock_state.latest_user_message = None
@@ -260,7 +268,7 @@ def test_agent_handles_code_search_response(mock_code_search, agent: CodeActAgen
     observation = CodeSearchObservation(
         query="function that handles HTTP requests",
         results=mock_results,
-        status="success",
+        status="success"
     )
     mock_state.history = [action, observation]
 

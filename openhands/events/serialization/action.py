@@ -10,7 +10,7 @@ from openhands.events.action.agent import (
     ChangeAgentStateAction,
 )
 from openhands.events.action.browse import BrowseInteractiveAction, BrowseURLAction
-from openhands.events.action.code_search_action import CodeSearchAction
+from openhands.events.action.code_search import CodeSearchAction
 from openhands.events.action.commands import (
     CmdRunAction,
     IPythonRunCellAction,

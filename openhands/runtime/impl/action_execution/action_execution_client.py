@@ -20,6 +20,7 @@ from openhands.events.action import (
     BrowseInteractiveAction,
     BrowseURLAction,
     CmdRunAction,
+    CodeSearchAction,
     FileEditAction,
     FileReadAction,
     FileWriteAction,
@@ -295,6 +296,9 @@ class ActionExecutionClient(Runtime):
         return self.send_action_for_execution(action)
 
     def browse_interactive(self, action: BrowseInteractiveAction) -> Observation:
+        return self.send_action_for_execution(action)
+        
+    def code_search(self, action: CodeSearchAction) -> Observation:
         return self.send_action_for_execution(action)
 
     def close(self) -> None:

@@ -4,50 +4,35 @@ Observation for code search functionality.
 This module defines the observation class for code search operations.
 """
 
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Any
 
+from openhands.core.schema import ObservationType
 from openhands.events.observation.observation import Observation
 
 
+@dataclass
 class CodeSearchObservation(Observation):
-    """Observation for code search operations.
-    
-    This observation is returned when a code search operation is performed.
-    It contains the results of the search or initialization.
+    """Observation from a code search action.
+
+    Attributes:
+        query: The search query that was executed.
+        results: The search results.
+        status: Status of the operation ('success' or 'error').
+        message: Message describing the result.
+        num_documents: Number of documents indexed (for initialize operations).
+        repo_path: Path to the repository.
+        observation: The type of observation.
     """
-    
-    observation = "code_search"
-    
-    def __init__(
-        self,
-        status: str,
-        message: str,
-        results: Optional[List[Dict[str, Any]]] = None,
-        num_documents: Optional[int] = None,
-        command: Optional[str] = None,
-        repo_path: Optional[str] = None,
-        query: Optional[str] = None,
-    ):
-        """Initialize a code search observation.
-        
-        Args:
-            status: Status of the operation ('success' or 'error')
-            message: Message describing the result
-            results: List of search results (for search operations)
-            num_documents: Number of documents indexed (for initialize operations)
-            command: Command that was executed ('initialize' or 'search')
-            repo_path: Path to the repository
-            query: Search query (for search operations)
-        """
-        super().__init__()
-        self.status = status
-        self.message = message
-        self.results = results or []
-        self.num_documents = num_documents
-        self.command = command
-        self.repo_path = repo_path
-        self.query = query
-    
+
+    query: str
+    results: List[Dict[str, Any]]
+    status: str = "success"
+    message: str = ""
+    num_documents: Optional[int] = None
+    repo_path: Optional[str] = None
+    observation: str = ObservationType.CODE_SEARCH
+
     @property
     def content(self) -> str:
         """Get the content of the observation.
@@ -58,40 +43,27 @@ class CodeSearchObservation(Observation):
         if self.status == "error":
             return f"Error: {self.message}"
         
-        if self.command == "initialize":
+        if self.num_documents is not None:
             return f"Successfully indexed {self.num_documents} files from {self.repo_path}"
         
-        if self.command == "search":
-            result_str = f"Found {len(self.results)} results for query: '{self.query}'"
-            if self.results:
-                result_str += "\n\nResults:"
-                for i, result in enumerate(self.results):
-                    result_str += f"\n\n{i+1}. {result.get('path', 'Unknown')} (score: {result.get('score', 0):.2f})"
-                    content = result.get('content', '')
-                    if content:
-                        # Add a snippet of the content
-                        snippet = content[:200] + "..." if len(content) > 200 else content
-                        result_str += f"\n   {snippet}"
-            return result_str
+        result_str = f"Found {len(self.results)} results for query: '{self.query}'"
+        if self.results:
+            result_str += "\n\nResults:"
+            for i, result in enumerate(self.results, 1):
+                result_str += f"\n\n{i}. {result.get('file', 'Unknown')} (score: {result.get('score', 0):.3f})"
+                content = result.get('content', '')
+                if content:
+                    result_str += f"\n{'-' * 80}\n{content}"
+        return result_str
+
+    def __str__(self) -> str:
+        ret = "**CodeSearchObservation**\n"
+        ret += f"Query: {self.query}\n"
+        ret += f"Found {len(self.results)} results:\n\n"
         
-        return self.message
-    
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'CodeSearchObservation':
-        """Create an observation from a dictionary.
+        for i, result in enumerate(self.results, 1):
+            ret += f"Result {i}: {result.get('file', 'Unknown')} (Score: {result.get('score', 0):.3f})\n"
+            ret += "-" * 80 + "\n"
+            ret += result.get("content", "") + "\n\n"
         
-        Args:
-            data: Dictionary containing observation data
-            
-        Returns:
-            CodeSearchObservation instance
-        """
-        return cls(
-            status=data.get("status", "error"),
-            message=data.get("message", "Unknown error"),
-            results=data.get("results", []),
-            num_documents=data.get("num_documents"),
-            command=data.get("command"),
-            repo_path=data.get("repo_path"),
-            query=data.get("query"),
-        )
+        return ret

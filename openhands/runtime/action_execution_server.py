@@ -36,6 +36,7 @@ from openhands.events.action import (
     BrowseInteractiveAction,
     BrowseURLAction,
     CmdRunAction,
+    CodeSearchAction,
     FileEditAction,
     FileReadAction,
     FileWriteAction,
@@ -51,10 +52,12 @@ from openhands.events.observation import (
     IPythonRunCellObservation,
     Observation,
 )
+from openhands.events.observation.code_search import CodeSearchObservation
 from openhands.events.serialization import event_from_dict, event_to_dict
 from openhands.runtime.browser import browse
 from openhands.runtime.browser.browser_env import BrowserEnv
 from openhands.runtime.plugins import ALL_PLUGINS, JupyterPlugin, Plugin, VSCodePlugin
+from openhands.runtime.search_engine.code_search import code_search
 from openhands.runtime.utils.bash import BashSession
 from openhands.runtime.utils.files import insert_lines, read_lines
 from openhands.runtime.utils.memory_monitor import MemoryMonitor
@@ -457,6 +460,10 @@ class ActionExecutor:
 
     async def browse_interactive(self, action: BrowseInteractiveAction) -> Observation:
         return await browse(action, self.browser)
+        
+    async def code_search(self, action: CodeSearchAction) -> Observation:
+        obs = await call_sync_from_async(code_search, action)
+        return obs
 
     def close(self):
         self.memory_monitor.stop_monitoring()

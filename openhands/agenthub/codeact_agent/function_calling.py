@@ -109,11 +109,9 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
             # ================================================
             # CodeSearchTool
             # ================================================
-            elif tool_call.function.name == 'code_search':
-                if 'command' not in arguments:
-                    raise FunctionCallValidationError(
-                        f'Missing required argument "command" in tool call {tool_call.function.name}'
-                    )
+            elif tool_call.function.name == 'code_search' and 'command' in arguments:
+                # This is the legacy code search tool format
+                # We'll convert it to the new format for compatibility
                 if 'repo_path' not in arguments:
                     raise FunctionCallValidationError(
                         f'Missing required argument "repo_path" in tool call {tool_call.function.name}'
@@ -124,10 +122,9 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
                 
                 if command == 'initialize':
                     action = CodeSearchAction(
-                        command=command,
+                        query="initialize",  # Use query field for compatibility
                         repo_path=repo_path,
                         extensions=arguments.get('extensions'),
-                        embedding_model=arguments.get('embedding_model'),
                     )
                 elif command == 'search':
                     if 'query' not in arguments:
@@ -135,9 +132,8 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
                             f'Missing required argument "query" in tool call {tool_call.function.name} for search command'
                         )
                     action = CodeSearchAction(
-                        command=command,
-                        repo_path=repo_path,
                         query=arguments['query'],
+                        repo_path=repo_path,
                         k=arguments.get('k', 5),
                     )
                 else:
@@ -225,6 +221,22 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
                         f'Missing required argument "url" in tool call {tool_call.function.name}'
                     )
                 action = BrowseURLAction(url=arguments['url'])
+                
+            # ================================================
+            # CodeSearchTool
+            # ================================================
+            elif tool_call.function.name == CodeSearchTool.function.name:
+                if 'query' not in arguments:
+                    raise FunctionCallValidationError(
+                        f'Missing required argument "query" in tool call {tool_call.function.name}'
+                    )
+                action = CodeSearchAction(
+                    query=arguments['query'],
+                    repo_path=arguments.get('repo_path'),
+                    save_dir=None,  # Use default from config
+                    extensions=arguments.get('extensions'),
+                    k=arguments.get('k', 5)
+                )
             else:
                 raise FunctionCallNotExistsError(
                     f'Tool {tool_call.function.name} is not registered. (arguments: {arguments}). Please check the tool name and retry with an existing tool.'
@@ -270,5 +282,5 @@ def get_tools(
     else:
         tools.append(StrReplaceEditorTool)
     if codeact_enable_code_search:
-        tools.append(CodeSearchTool())
+        tools.append(CodeSearchTool)
     return tools

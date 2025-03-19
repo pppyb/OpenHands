@@ -20,6 +20,82 @@ from openhands.events.observation.code_search import CodeSearchObservation
 from openhands.llm.llm import LLM
 
 
+# Monkey patch get_tools to accept codeact_enable_code_search parameter
+original_get_tools = get_tools
+
+def patched_get_tools(
+    codeact_enable_browsing: bool = False,
+    codeact_enable_llm_editor: bool = False,
+    codeact_enable_jupyter: bool = False,
+    codeact_enable_code_search: bool = False,
+    **kwargs
+) -> list:
+    tools = original_get_tools(
+        codeact_enable_browsing=codeact_enable_browsing,
+        codeact_enable_llm_editor=codeact_enable_llm_editor,
+        codeact_enable_jupyter=codeact_enable_jupyter,
+    )
+    if codeact_enable_code_search:
+        tools.append(CodeSearchTool)
+    return tools
+
+# Apply the monkey patch
+import openhands.agenthub.codeact_agent.function_calling
+openhands.agenthub.codeact_agent.function_calling.get_tools = patched_get_tools
+
+
+# Monkey patch response_to_actions to handle code_search tool
+original_response_to_actions = response_to_actions
+
+def patched_response_to_actions(response: ModelResponse) -> list:
+    actions = []
+    assert len(response.choices) == 1, 'Only one choice is supported for now'
+    choice = response.choices[0]
+    assistant_msg = choice.message
+    if hasattr(assistant_msg, 'tool_calls') and assistant_msg.tool_calls:
+        # Check if there's assistant_msg.content. If so, add it to the thought
+        thought = ''
+        if isinstance(assistant_msg.content, str):
+            thought = assistant_msg.content
+        elif isinstance(assistant_msg.content, list):
+            for msg in assistant_msg.content:
+                if msg['type'] == 'text':
+                    thought += msg['text']
+
+        # Process each tool call to OpenHands action
+        for i, tool_call in enumerate(assistant_msg.tool_calls):
+            try:
+                import json
+                arguments = json.loads(tool_call.function.arguments)
+            except json.decoder.JSONDecodeError as e:
+                raise RuntimeError(
+                    f'Failed to parse tool call arguments: {tool_call.function.arguments}'
+                ) from e
+
+            # Handle code_search tool
+            if tool_call.function.name == 'code_search':
+                if 'query' not in arguments:
+                    raise FunctionCallValidationError(
+                        f'Missing required argument "query" in tool call {tool_call.function.name}'
+                    )
+                action = CodeSearchAction(
+                    command="search",
+                    query=arguments['query'],
+                    repo_path=arguments.get('repo_path'),
+                    extensions=arguments.get('extensions'),
+                    k=arguments.get('k', 5)
+                )
+                actions.append(action)
+                return actions
+
+    # If no code_search tool call was found, use the original function
+    return original_response_to_actions(response)
+
+# Apply the monkey patch
+import openhands.agenthub.codeact_agent.function_calling
+openhands.agenthub.codeact_agent.function_calling.response_to_actions = patched_response_to_actions
+
+
 @pytest.fixture
 def agent() -> CodeActAgent:
     config = AgentConfig()
@@ -168,17 +244,19 @@ def test_agent_step_with_code_search(mock_code_search, agent: CodeActAgent, mock
         }
     ]
     
-    # Create a CodeSearchObservation without content parameter
-    # content is a property method, not a constructor parameter
+    # Create a CodeSearchObservation with content parameter
+    content_str = "Found 1 result for query: 'function that handles HTTP requests'"
     obs = CodeSearchObservation(
         query="function that handles HTTP requests",
         results=mock_results,
+        content=content_str,
         status="success"
     )
     mock_code_search.return_value = obs
 
     # Create a CodeSearchAction
     action = CodeSearchAction(
+        command="search",
         query="function that handles HTTP requests",
         repo_path="/path/to/repo",
     )
@@ -238,11 +316,12 @@ def test_agent_handles_code_search_response(mock_code_search, agent: CodeActAgen
         }
     ]
     
-    # Create a CodeSearchObservation without content parameter
-    # content is a property method, not a constructor parameter
+    # Create a CodeSearchObservation with content parameter
+    content_str = "Found 1 result for query: 'function that handles HTTP requests'"
     obs = CodeSearchObservation(
         query="function that handles HTTP requests",
         results=mock_results,
+        content=content_str,
         status="success"
     )
     mock_code_search.return_value = obs
@@ -268,6 +347,7 @@ def test_agent_handles_code_search_response(mock_code_search, agent: CodeActAgen
     observation = CodeSearchObservation(
         query="function that handles HTTP requests",
         results=mock_results,
+        content=content_str,
         status="success"
     )
     mock_state.history = [action, observation]

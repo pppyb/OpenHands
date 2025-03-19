@@ -106,40 +106,40 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
                     inputs=arguments,
                 )
 
-            # ================================================
-            # CodeSearchTool
-            # ================================================
-            elif tool_call.function.name == 'code_search' and 'command' in arguments:
-                # This is the legacy code search tool format
-                # We'll convert it to the new format for compatibility
-                if 'repo_path' not in arguments:
-                    raise FunctionCallValidationError(
-                        f'Missing required argument "repo_path" in tool call {tool_call.function.name}'
-                    )
+            # # ================================================
+            # # CodeSearchTool
+            # # ================================================
+            # elif tool_call.function.name == 'code_search' and 'command' in arguments:
+            #     # This is the legacy code search tool format
+            #     # We'll convert it to the new format for compatibility
+            #     if 'repo_path' not in arguments:
+            #         raise FunctionCallValidationError(
+            #             f'Missing required argument "repo_path" in tool call {tool_call.function.name}'
+            #         )
                 
-                command = arguments['command']
-                repo_path = arguments['repo_path']
+            #     command = arguments['command']
+            #     repo_path = arguments['repo_path']
                 
-                if command == 'initialize':
-                    action = CodeSearchAction(
-                        query="initialize",  # Use query field for compatibility
-                        repo_path=repo_path,
-                        extensions=arguments.get('extensions'),
-                    )
-                elif command == 'search':
-                    if 'query' not in arguments:
-                        raise FunctionCallValidationError(
-                            f'Missing required argument "query" in tool call {tool_call.function.name} for search command'
-                        )
-                    action = CodeSearchAction(
-                        query=arguments['query'],
-                        repo_path=repo_path,
-                        k=arguments.get('k', 5),
-                    )
-                else:
-                    raise FunctionCallValidationError(
-                        f'Unknown command "{command}" in tool call {tool_call.function.name}'
-                    )
+            #     if command == 'initialize':
+            #         action = CodeSearchAction(
+            #             query="initialize",  # Use query field for compatibility
+            #             repo_path=repo_path,
+            #             extensions=arguments.get('extensions'),
+            #         )
+            #     elif command == 'search':
+            #         if 'query' not in arguments:
+            #             raise FunctionCallValidationError(
+            #                 f'Missing required argument "query" in tool call {tool_call.function.name} for search command'
+            #             )
+            #         action = CodeSearchAction(
+            #             query=arguments['query'],
+            #             repo_path=repo_path,
+            #             k=arguments.get('k', 5),
+            #         )
+            #     else:
+            #         raise FunctionCallValidationError(
+            #             f'Unknown command "{command}" in tool call {tool_call.function.name}'
+            #         )
             
             # ================================================
             # AgentFinishAction
@@ -225,7 +225,7 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
             # ================================================
             # CodeSearchTool
             # ================================================
-            elif tool_call.function.name == CodeSearchTool.function.name:
+            elif tool_call.function.name == CodeSearchTool['function']['name']:
                 if 'query' not in arguments:
                     raise FunctionCallValidationError(
                         f'Missing required argument "query" in tool call {tool_call.function.name}'

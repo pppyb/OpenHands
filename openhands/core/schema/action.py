@@ -87,6 +87,8 @@ class ActionTypeSchema(BaseModel):
 
     CODE_SEARCH: str = Field(default='code_search')
     """Search code in a repository using semantic search."""
+    RECALL: str = Field(default='recall')
+    """Retrieves content from a user workspace, microagent, or other source."""
 
 
 ActionType = ActionTypeSchema()

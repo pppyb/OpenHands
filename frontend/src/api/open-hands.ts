@@ -174,7 +174,7 @@ class OpenHands {
     code: string,
   ): Promise<GitHubAccessTokenResponse> {
     const { data } = await openHands.post<GitHubAccessTokenResponse>(
-      "/api/github/callback",
+      "/api/keycloak/callback",
       {
         code,
       },
@@ -277,6 +277,13 @@ class OpenHands {
       {
         amount,
       },
+    );
+    return data.redirect_url;
+  }
+
+  static async createBillingSessionResponse(): Promise<string> {
+    const { data } = await openHands.post(
+      "/api/billing/create-customer-setup-session",
     );
     return data.redirect_url;
   }

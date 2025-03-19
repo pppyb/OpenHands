@@ -26,8 +26,6 @@ class AgentConfig(BaseModel):
     """
 
     llm_config: str | None = Field(default=None)
-    memory_enabled: bool = Field(default=False)
-    memory_max_threads: int = Field(default=3)
     codeact_enable_browsing: bool = Field(default=True)
     codeact_enable_llm_editor: bool = Field(default=False)
     codeact_enable_jupyter: bool = Field(default=True)
@@ -52,11 +50,10 @@ class AgentConfig(BaseModel):
         Example:
         Apply generic agent config with custom agent overrides, e.g.
             [agent]
-            memory_enabled = false
-            enable_prompt_extensions = true
+            enable_prompt_extensions = false
             [agent.BrowsingAgent]
-            memory_enabled = true
-        results in memory_enabled being true for BrowsingAgent but false for others.
+            enable_prompt_extensions = true
+        results in prompt_extensions being true for BrowsingAgent but false for others.
 
         Returns:
             dict[str, AgentConfig]: A mapping where the key "agent" corresponds to the default configuration

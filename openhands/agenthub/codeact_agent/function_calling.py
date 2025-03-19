@@ -17,9 +17,10 @@ from openhands.agenthub.codeact_agent.tools import (
     FinishTool,
     IPythonTool,
     LLMBasedFileEditTool,
-    StrReplaceEditorTool,
     ThinkTool,
     WebReadTool,
+    create_cmd_run_tool,
+    create_str_replace_editor_tool,
 )
 from openhands.core.exceptions import (
     FunctionCallNotExistsError,
@@ -41,6 +42,7 @@ from openhands.events.action import (
 )
 from openhands.events.event import FileEditSource, FileReadSource
 from openhands.events.tool import ToolCallMetadata
+from openhands.llm import LLM
 
 
 def combine_thought(action: Action, thought: str) -> Action:
@@ -82,7 +84,7 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
             # CmdRunTool (Bash)
             # ================================================
 
-            if tool_call.function.name == CmdRunTool['function']['name']:
+            if tool_call.function.name == create_cmd_run_tool()['function']['name']:
                 if 'command' not in arguments:
                     raise FunctionCallValidationError(
                         f'Missing required argument "command" in tool call {tool_call.function.name}'
@@ -106,46 +108,15 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
                     inputs=arguments,
                 )
 
-            # # ================================================
-            # # CodeSearchTool
-            # # ================================================
-            # elif tool_call.function.name == 'code_search' and 'command' in arguments:
-            #     # This is the legacy code search tool format
-            #     # We'll convert it to the new format for compatibility
-            #     if 'repo_path' not in arguments:
-            #         raise FunctionCallValidationError(
-            #             f'Missing required argument "repo_path" in tool call {tool_call.function.name}'
-            #         )
-                
-            #     command = arguments['command']
-            #     repo_path = arguments['repo_path']
-                
-            #     if command == 'initialize':
-            #         action = CodeSearchAction(
-            #             query="initialize",  # Use query field for compatibility
-            #             repo_path=repo_path,
-            #             extensions=arguments.get('extensions'),
-            #         )
-            #     elif command == 'search':
-            #         if 'query' not in arguments:
-            #             raise FunctionCallValidationError(
-            #                 f'Missing required argument "query" in tool call {tool_call.function.name} for search command'
-            #             )
-            #         action = CodeSearchAction(
-            #             query=arguments['query'],
-            #             repo_path=repo_path,
-            #             k=arguments.get('k', 5),
-            #         )
-            #     else:
-            #         raise FunctionCallValidationError(
-            #             f'Unknown command "{command}" in tool call {tool_call.function.name}'
-            #         )
             
             # ================================================
             # AgentFinishAction
             # ================================================
             elif tool_call.function.name == FinishTool['function']['name']:
-                action = AgentFinishAction()
+                action = AgentFinishAction(
+                    final_thought=arguments.get('message', ''),
+                    task_completed=arguments.get('task_completed', None),
+                )
 
             # ================================================
             # LLMBasedFileEditTool (LLM-based file editor, deprecated)
@@ -165,7 +136,10 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
                     start=arguments.get('start', 1),
                     end=arguments.get('end', -1),
                 )
-            elif tool_call.function.name == StrReplaceEditorTool['function']['name']:
+            elif (
+                tool_call.function.name
+                == create_str_replace_editor_tool()['function']['name']
+            ):
                 if 'command' not in arguments:
                     raise FunctionCallValidationError(
                         f'Missing required argument "command" in tool call {tool_call.function.name}'
@@ -270,8 +244,22 @@ def get_tools(
     codeact_enable_llm_editor: bool = False,
     codeact_enable_jupyter: bool = False,
     codeact_enable_code_search: bool = False,
+    llm: LLM | None = None,
 ) -> list[ChatCompletionToolParam]:
-    tools = [CmdRunTool, ThinkTool, FinishTool]
+    SIMPLIFIED_TOOL_DESCRIPTION_LLM_SUBSTRS = ['gpt-', 'o3', 'o1']
+
+    use_simplified_tool_desc = False
+    if llm is not None:
+        use_simplified_tool_desc = any(
+            model_substr in llm.config.model
+            for model_substr in SIMPLIFIED_TOOL_DESCRIPTION_LLM_SUBSTRS
+        )
+
+    tools = [
+        create_cmd_run_tool(use_simplified_description=use_simplified_tool_desc),
+        ThinkTool,
+        FinishTool,
+    ]
     if codeact_enable_browsing:
         tools.append(WebReadTool)
         tools.append(BrowserTool)
@@ -283,4 +271,9 @@ def get_tools(
         tools.append(StrReplaceEditorTool)
     if codeact_enable_code_search:
         tools.append(CodeSearchTool)
+        tools.append(
+            create_str_replace_editor_tool(
+                use_simplified_description=use_simplified_tool_desc
+            )
+        )
     return tools

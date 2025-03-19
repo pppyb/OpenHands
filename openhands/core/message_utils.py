@@ -1,21 +1,3 @@
-from litellm import ModelResponse
-
-from openhands.core.logger import openhands_logger as logger
-from openhands.core.message import ImageContent, Message, TextContent
-from openhands.core.schema import ActionType
-from openhands.events.action import (
-    Action,
-    AgentDelegateAction,
-    AgentFinishAction,
-    AgentThinkAction,
-    BrowseInteractiveAction,
-    BrowseURLAction,
-    CmdRunAction,
-    FileEditAction,
-    FileReadAction,
-    IPythonRunCellAction,
-    MessageAction,
-)
 from openhands.events.event import Event
 from openhands.events.observation import (
     AgentCondensationObservation,
@@ -377,6 +359,9 @@ def apply_prompt_caching(messages: list[Message]) -> None:
                 -1
             ].cache_prompt = True  # Last item inside the message content
             break
+
+
+from openhands.llm.metrics import Metrics, TokenUsage
 
 
 def get_token_usage_for_event(event: Event, metrics: Metrics) -> TokenUsage | None:

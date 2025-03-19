@@ -231,9 +231,9 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
                         f'Missing required argument "query" in tool call {tool_call.function.name}'
                     )
                 action = CodeSearchAction(
+                    command="search",  # Default command is search
                     query=arguments['query'],
                     repo_path=arguments.get('repo_path'),
-                    save_dir=None,  # Use default from config
                     extensions=arguments.get('extensions'),
                     k=arguments.get('k', 5)
                 )

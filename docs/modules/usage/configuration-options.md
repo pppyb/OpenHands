@@ -308,6 +308,12 @@ The agent configuration options are defined in the `[agent]` and `[agent.<agent_
   - Default: `false`
   - Description: Whether Jupyter is enabled in the action space
 
+- `enable_code_search`
+  - Type: `bool`
+  - Default: `false`
+  - Description: Whether the search engine tool is enabled in the action space. See [Search Configuration](./search/code-search.md) for details.
+
+
 - `enable_history_truncation`
   - Type: `bool`
   - Default: `true`

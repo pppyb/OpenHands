@@ -3,10 +3,12 @@ Integration with openhands-aci code search functionality.
 """
 
 import os
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 from openhands.core.logger import openhands_logger as logger
-from openhands_aci.code_search.tools import initialize_code_search as aci_initialize_code_search
+from openhands_aci.code_search.tools import (
+    initialize_code_search as aci_initialize_code_search,
+)
 from openhands_aci.code_search.tools import search_code as aci_search_code
 
 
@@ -30,10 +32,12 @@ def initialize_code_search(
         Dictionary with status and message.
     """
     # Check if OpenAI API key is set
-    api_key = os.environ.get("OPENAI_API_KEY")
+    api_key = os.environ.get('OPENAI_API_KEY')
     if not api_key:
-        logger.warning("OPENAI_API_KEY environment variable is not set. Code search may not work properly.")
-    
+        logger.warning(
+            'OPENAI_API_KEY environment variable is not set. Code search may not work properly.'
+        )
+
     try:
         result = aci_initialize_code_search(
             repo_path=repo_path,
@@ -41,11 +45,11 @@ def initialize_code_search(
             extensions=extensions,
             embedding_model=embedding_model,
         )
-        logger.info(f"Code search initialized: {result}")
+        logger.info(f'Code search initialized: {result}')
         return result
     except Exception as e:
-        logger.error(f"Error initializing code search: {e}")
-        return {"status": "error", "message": f"Error initializing code search: {e}"}
+        logger.error(f'Error initializing code search: {e}')
+        return {'status': 'error', 'message': f'Error initializing code search: {e}'}
 
 
 def search_code(
@@ -64,10 +68,12 @@ def search_code(
         Dictionary with status, message, and results.
     """
     # Check if OpenAI API key is set
-    api_key = os.environ.get("OPENAI_API_KEY")
+    api_key = os.environ.get('OPENAI_API_KEY')
     if not api_key:
-        logger.warning("OPENAI_API_KEY environment variable is not set. Code search may not work properly.")
-    
+        logger.warning(
+            'OPENAI_API_KEY environment variable is not set. Code search may not work properly.'
+        )
+
     try:
         result = aci_search_code(
             save_dir=save_dir,
@@ -77,5 +83,5 @@ def search_code(
         logger.info(f"Code search results: {len(result.get('results', []))} matches")
         return result
     except Exception as e:
-        logger.error(f"Error searching code: {e}")
-        return {"status": "error", "message": f"Error searching code: {e}"}
+        logger.error(f'Error searching code: {e}')
+        return {'status': 'error', 'message': f'Error searching code: {e}'}

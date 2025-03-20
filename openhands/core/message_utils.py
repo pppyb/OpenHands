@@ -1,3 +1,21 @@
+from litellm import ModelResponse
+
+from openhands.core.logger import openhands_logger as logger
+from openhands.core.message import ImageContent, Message, TextContent
+from openhands.core.schema import ActionType
+from openhands.events.action import (
+    Action,
+    AgentDelegateAction,
+    AgentFinishAction,
+    AgentThinkAction,
+    BrowseInteractiveAction,
+    BrowseURLAction,
+    CmdRunAction,
+    FileEditAction,
+    FileReadAction,
+    IPythonRunCellAction,
+    MessageAction,
+)
 from openhands.events.event import Event
 from openhands.events.observation import (
     AgentCondensationObservation,
@@ -5,7 +23,6 @@ from openhands.events.observation import (
     AgentThinkObservation,
     BrowserOutputObservation,
     CmdOutputObservation,
-    CodeSearchObservation,
     FileEditObservation,
     FileReadObservation,
     IPythonRunCellObservation,
@@ -323,9 +340,6 @@ def get_observation_message(
     elif isinstance(obs, AgentCondensationObservation):
         text = truncate_content(obs.content, max_message_chars)
         message = Message(role='user', content=[TextContent(text=text)])
-    elif isinstance(obs, CodeSearchObservation):
-        text = truncate_content(obs.content, max_message_chars)
-        message = Message(role='user', content=[TextContent(text=text)])
     else:
         # If an observation message is not returned, it will cause an error
         # when the LLM tries to return the next message
@@ -359,9 +373,6 @@ def apply_prompt_caching(messages: list[Message]) -> None:
                 -1
             ].cache_prompt = True  # Last item inside the message content
             break
-
-
-from openhands.llm.metrics import Metrics, TokenUsage
 
 
 def get_token_usage_for_event(event: Event, metrics: Metrics) -> TokenUsage | None:

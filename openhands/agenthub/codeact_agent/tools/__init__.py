@@ -10,7 +10,6 @@ from .web_read import WebReadTool
 
 __all__ = [
     'BrowserTool',
-    'CmdRunTool',
     'CodeSearchTool',
     'create_cmd_run_tool',
     'FinishTool',

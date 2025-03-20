@@ -12,7 +12,6 @@ from litellm import (
 
 from openhands.agenthub.codeact_agent.tools import (
     BrowserTool,
-    CmdRunTool,
     CodeSearchTool,
     FinishTool,
     IPythonTool,
@@ -108,7 +107,6 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
                     inputs=arguments,
                 )
 
-            
             # ================================================
             # AgentFinishAction
             # ================================================
@@ -195,7 +193,7 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
                         f'Missing required argument "url" in tool call {tool_call.function.name}'
                     )
                 action = BrowseURLAction(url=arguments['url'])
-                
+
             # ================================================
             # CodeSearchTool
             # ================================================
@@ -209,7 +207,7 @@ def response_to_actions(response: ModelResponse) -> list[Action]:
                     repo_path=arguments.get('repo_path'),
                     save_dir=None,  # Use default from config
                     extensions=arguments.get('extensions'),
-                    k=arguments.get('k', 5)
+                    k=arguments.get('k', 5),
                 )
             else:
                 raise FunctionCallNotExistsError(
@@ -267,10 +265,9 @@ def get_tools(
         tools.append(IPythonTool)
     if codeact_enable_llm_editor:
         tools.append(LLMBasedFileEditTool)
-    else:
-        tools.append(StrReplaceEditorTool)
     if codeact_enable_code_search:
         tools.append(CodeSearchTool)
+    else:
         tools.append(
             create_str_replace_editor_tool(
                 use_simplified_description=use_simplified_tool_desc

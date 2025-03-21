@@ -1,0 +1,7 @@
+FROM docker.all-hands.dev/all-hands-ai/runtime:0.29-nikolaik
+
+# 复制您的openhands_aci模块到容器中
+COPY ../openhands-aci/openhands_aci /usr/local/lib/python3.12/site-packages/openhands_aci
+
+# 确保目录结构正确
+RUN ls -la /usr/local/lib/python3.12/site-packages/openhands_aci/code_search

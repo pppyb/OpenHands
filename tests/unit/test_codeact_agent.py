@@ -25,6 +25,7 @@ from openhands.core.message import ImageContent, Message, TextContent
 from openhands.events.action import (
     CmdRunAction,
     MessageAction,
+    CodeSearchAction,
 )
 from openhands.events.event import EventSource
 from openhands.events.observation.commands import (
@@ -83,6 +84,8 @@ def test_get_tools_default():
         codeact_enable_jupyter=True,
         codeact_enable_llm_editor=True,
         codeact_enable_browsing=True,
+        codeact_enable_code_search=True,
+
     )
     assert len(tools) > 0
 
@@ -92,6 +95,8 @@ def test_get_tools_default():
     assert 'execute_ipython_cell' in tool_names
     assert 'edit_file' in tool_names
     assert 'web_read' in tool_names
+    assert 'code_search' in tool_names
+    
 
 
 def test_get_tools_with_options():
@@ -100,22 +105,26 @@ def test_get_tools_with_options():
         codeact_enable_browsing=True,
         codeact_enable_jupyter=True,
         codeact_enable_llm_editor=True,
+        codeact_enable_code_search=True,
     )
     tool_names = [tool['function']['name'] for tool in tools]
     assert 'browser' in tool_names
     assert 'execute_ipython_cell' in tool_names
     assert 'edit_file' in tool_names
+    assert 'code_search' in tool_names
 
     # Test with all options disabled
     tools = get_tools(
         codeact_enable_browsing=False,
         codeact_enable_jupyter=False,
         codeact_enable_llm_editor=False,
+        codeact_enable_code_search=False,
     )
     tool_names = [tool['function']['name'] for tool in tools]
     assert 'browser' not in tool_names
     assert 'execute_ipython_cell' not in tool_names
     assert 'edit_file' not in tool_names
+    assert 'code_search' not in tool_names
 
 
 def test_cmd_run_tool():
@@ -148,6 +157,11 @@ def test_llm_based_file_edit_tool():
         'content',
     ]
 
+# todo:
+# def test_code_search_tool():
+
+# todo:
+# def test_response_to_actions_code_search():
 
 def test_str_replace_editor_tool():
     StrReplaceEditorTool = create_str_replace_editor_tool()

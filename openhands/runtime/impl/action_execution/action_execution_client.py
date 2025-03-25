@@ -24,6 +24,7 @@ from openhands.events.action import (
     FileReadAction,
     FileWriteAction,
     IPythonRunCellAction,
+    CodeSearchAction,
 )
 from openhands.events.action.action import Action
 from openhands.events.action.files import FileEditSource
@@ -296,7 +297,10 @@ class ActionExecutionClient(Runtime):
 
     def browse_interactive(self, action: BrowseInteractiveAction) -> Observation:
         return self.send_action_for_execution(action)
-
+    
+    def code_search(self, action: CodeSearchAction) -> Observation:
+        return self.send_action_for_execution(action)
+    
     def close(self) -> None:
         # Make sure we don't close the session multiple times
         # Can happen in evaluation

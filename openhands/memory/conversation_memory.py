@@ -16,6 +16,7 @@ from openhands.events.action import (
     FileReadAction,
     IPythonRunCellAction,
     MessageAction,
+    CodeSearchAction,
 )
 from openhands.events.event import Event, RecallType
 from openhands.events.observation import (
@@ -28,6 +29,7 @@ from openhands.events.observation import (
     FileReadObservation,
     IPythonRunCellObservation,
     UserRejectObservation,
+    CodeSearchObservation,
 )
 from openhands.events.observation.agent import (
     MicroagentKnowledge,
@@ -383,6 +385,9 @@ class ConversationMemory:
             text += '\n[Last action has been rejected by the user]'
             message = Message(role='user', content=[TextContent(text=text)])
         elif isinstance(obs, AgentCondensationObservation):
+            text = truncate_content(obs.content, max_message_chars)
+            message = Message(role='user', content=[TextContent(text=text)])
+        elif isinstance(obs, CodeSearchObservation):
             text = truncate_content(obs.content, max_message_chars)
             message = Message(role='user', content=[TextContent(text=text)])
         elif (

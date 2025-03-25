@@ -42,6 +42,7 @@ from openhands.events.action import (
     FileReadAction,
     FileWriteAction,
     IPythonRunCellAction,
+    CodeSearchAction,
 )
 from openhands.events.event import FileEditSource, FileReadSource
 from openhands.events.observation import (
@@ -54,6 +55,9 @@ from openhands.events.observation import (
     Observation,
 )
 from openhands.events.serialization import event_from_dict, event_to_dict
+from openhands.events.observation.code_search import CodeSearchObservation
+
+from openhands.runtime.code_search.code_search import code_search
 from openhands.runtime.browser import browse
 from openhands.runtime.browser.browser_env import BrowserEnv
 from openhands.runtime.plugins import ALL_PLUGINS, JupyterPlugin, Plugin, VSCodePlugin
@@ -504,7 +508,11 @@ class ActionExecutor:
     async def browse_interactive(self, action: BrowseInteractiveAction) -> Observation:
         await self._ensure_browser_ready()
         return await browse(action, self.browser)
-
+    
+    async def code_search(self, action: CodeSearchAction) -> Observation:
+        obs = await call_sync_from_async(code_search, action)
+        return obs
+    
     def close(self):
         self.memory_monitor.stop_monitoring()
         if self.bash_session is not None:

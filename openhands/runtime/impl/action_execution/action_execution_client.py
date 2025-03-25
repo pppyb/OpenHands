@@ -24,9 +24,12 @@ from openhands.events.action import (
     FileReadAction,
     FileWriteAction,
     IPythonRunCellAction,
-    CodeSearchAction,
 )
 from openhands.events.action.action import Action
+from openhands.events.action.code_search import (
+    InitializeCodeSearchAction,
+    SearchCodeAction,
+)
 from openhands.events.action.files import FileEditSource
 from openhands.events.observation import (
     AgentThinkObservation,
@@ -297,10 +300,15 @@ class ActionExecutionClient(Runtime):
 
     def browse_interactive(self, action: BrowseInteractiveAction) -> Observation:
         return self.send_action_for_execution(action)
-    
-    def code_search(self, action: CodeSearchAction) -> Observation:
+
+    def initialize_code_search(self, action: InitializeCodeSearchAction) -> Observation:
+        """Initialize code search for a repository."""
         return self.send_action_for_execution(action)
-    
+
+    def search_code(self, action: SearchCodeAction) -> Observation:
+        """Search code in an indexed repository."""
+        return self.send_action_for_execution(action)
+
     def close(self) -> None:
         # Make sure we don't close the session multiple times
         # Can happen in evaluation

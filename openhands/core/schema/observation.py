@@ -51,9 +51,12 @@ class ObservationTypeSchema(BaseModel):
 
     RECALL: str = Field(default='recall')
     """Result of a recall operation. This can be the workspace context, a microagent, or other types of information."""
-    
-    
-    CODE_SEARCH: str = Field(default='code_search')
-    """Result of a code search operation."""
+
+    CODE_SEARCH_INITIALIZED: str = Field(default='code_search_initialized')
+    """Result of initializing code search."""
+
+    CODE_SEARCH_RESULTS: str = Field(default='code_search_results')
+    """Results from a code search operation."""
+
 
 ObservationType = ObservationTypeSchema()

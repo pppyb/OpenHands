@@ -11,8 +11,10 @@ from openhands.events.action.agent import (
     RecallAction,
 )
 from openhands.events.action.browse import BrowseInteractiveAction, BrowseURLAction
-from openhands.events.action.code_search import CodeSearchAction
-
+from openhands.events.action.code_search import (
+    InitializeCodeSearchAction,
+    SearchCodeAction,
+)
 from openhands.events.action.commands import (
     CmdRunAction,
     IPythonRunCellAction,
@@ -41,8 +43,8 @@ actions = (
     RecallAction,
     ChangeAgentStateAction,
     MessageAction,
-    CodeSearchAction,
-
+    InitializeCodeSearchAction,
+    SearchCodeAction,
 )
 
 ACTION_TYPE_TO_CLASS = {action_class.action: action_class for action_class in actions}  # type: ignore[attr-defined]

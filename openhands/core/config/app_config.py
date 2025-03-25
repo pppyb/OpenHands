@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field, SecretStr
 
 from openhands.core import logger
 from openhands.core.config.agent_config import AgentConfig
+from openhands.core.config.code_search_config import CodeSearchConfig
 from openhands.core.config.config_utils import (
     OH_DEFAULT_AGENT,
     OH_MAX_ITERATIONS,
@@ -13,7 +14,6 @@ from openhands.core.config.extended_config import ExtendedConfig
 from openhands.core.config.llm_config import LLMConfig
 from openhands.core.config.sandbox_config import SandboxConfig
 from openhands.core.config.security_config import SecurityConfig
-from openhands.core.config.code_search_config import CodeSearchConfig
 
 
 class AppConfig(BaseModel):

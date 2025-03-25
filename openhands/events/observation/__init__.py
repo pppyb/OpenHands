@@ -6,8 +6,10 @@ from openhands.events.observation.agent import (
     RecallObservation,
 )
 from openhands.events.observation.browse import BrowserOutputObservation
-from openhands.events.observation.code_search import CodeSearchObservation
-
+from openhands.events.observation.code_search import (
+    CodeSearchInitializedObservation,
+    CodeSearchResultsObservation,
+)
 from openhands.events.observation.commands import (
     CmdOutputMetadata,
     CmdOutputObservation,
@@ -46,6 +48,6 @@ __all__ = [
     'AgentCondensationObservation',
     'RecallObservation',
     'RecallType',
-    'CodeSearchObservation',
-
+    'CodeSearchResultsObservation',
+    'CodeSearchInitializedObservation',
 ]

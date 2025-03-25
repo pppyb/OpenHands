@@ -71,7 +71,6 @@ class CodeActAgent(Agent):
             codeact_enable_jupyter=self.config.codeact_enable_jupyter,
             codeact_enable_llm_editor=self.config.codeact_enable_llm_editor,
             codeact_enable_code_search=self.config.codeact_enable_code_search,
-
             llm=self.llm,
         )
         logger.debug(

@@ -16,7 +16,6 @@ from openhands.events.action import (
     FileReadAction,
     IPythonRunCellAction,
     MessageAction,
-    CodeSearchAction,
 )
 from openhands.events.event import Event, RecallType
 from openhands.events.observation import (
@@ -25,11 +24,12 @@ from openhands.events.observation import (
     AgentThinkObservation,
     BrowserOutputObservation,
     CmdOutputObservation,
+    CodeSearchInitializedObservation,
+    CodeSearchResultsObservation,
     FileEditObservation,
     FileReadObservation,
     IPythonRunCellObservation,
     UserRejectObservation,
-    CodeSearchObservation,
 )
 from openhands.events.observation.agent import (
     MicroagentKnowledge,
@@ -387,8 +387,21 @@ class ConversationMemory:
         elif isinstance(obs, AgentCondensationObservation):
             text = truncate_content(obs.content, max_message_chars)
             message = Message(role='user', content=[TextContent(text=text)])
-        elif isinstance(obs, CodeSearchObservation):
-            text = truncate_content(obs.content, max_message_chars)
+        elif isinstance(obs, CodeSearchInitializedObservation):
+            text = f'Code search initialized: {obs.message}'
+            if obs.num_documents is not None:
+                text += f'\nNumber of documents indexed: {obs.num_documents}'
+            message = Message(role='user', content=[TextContent(text=text)])
+        elif isinstance(obs, CodeSearchResultsObservation):
+            if obs.status == 'success' and obs.results:
+                text = 'Found the following relevant code:\n\n'
+                for result in obs.results:
+                    text += f'File: {result.path}\n'
+                    text += f'Score: {result.score}\n'
+                    text += f'Content:\n{result.content}\n\n'
+            else:
+                text = f'Code search error: {obs.message}'
+            text = truncate_content(text, max_message_chars)
             message = Message(role='user', content=[TextContent(text=text)])
         elif (
             isinstance(obs, RecallObservation)

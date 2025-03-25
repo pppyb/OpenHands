@@ -6,6 +6,7 @@ from litellm import ChatCompletionMessageToolCall
 from openhands.agenthub.codeact_agent.codeact_agent import CodeActAgent
 from openhands.agenthub.codeact_agent.function_calling import (
     BrowserTool,
+    CodeSearchTool,
     IPythonTool,
     LLMBasedFileEditTool,
     WebReadTool,
@@ -20,14 +21,24 @@ from openhands.agenthub.codeact_agent.tools.browser import (
 )
 from openhands.controller.state.state import State
 from openhands.core.config import AgentConfig, LLMConfig
-from openhands.core.exceptions import FunctionCallNotExistsError
+from openhands.core.exceptions import (
+    FunctionCallNotExistsError,
+    FunctionCallValidationError,
+)
 from openhands.core.message import ImageContent, Message, TextContent
 from openhands.events.action import (
     CmdRunAction,
     MessageAction,
-    CodeSearchAction,
+)
+from openhands.events.action.code_search import (
+    InitializeCodeSearchAction,
+    SearchCodeAction,
 )
 from openhands.events.event import EventSource
+from openhands.events.observation.code_search import (
+    CodeSearchInitializedObservation,
+    CodeSearchResultsObservation,
+)
 from openhands.events.observation.commands import (
     CmdOutputObservation,
 )
@@ -84,8 +95,6 @@ def test_get_tools_default():
         codeact_enable_jupyter=True,
         codeact_enable_llm_editor=True,
         codeact_enable_browsing=True,
-        codeact_enable_code_search=True,
-
     )
     assert len(tools) > 0
 
@@ -95,8 +104,6 @@ def test_get_tools_default():
     assert 'execute_ipython_cell' in tool_names
     assert 'edit_file' in tool_names
     assert 'web_read' in tool_names
-    assert 'code_search' in tool_names
-    
 
 
 def test_get_tools_with_options():
@@ -125,6 +132,62 @@ def test_get_tools_with_options():
     assert 'execute_ipython_cell' not in tool_names
     assert 'edit_file' not in tool_names
     assert 'code_search' not in tool_names
+
+    # Test with only code search enabled
+    tools = get_tools(
+        codeact_enable_browsing=False,
+        codeact_enable_jupyter=False,
+        codeact_enable_llm_editor=False,
+        codeact_enable_code_search=True,
+    )
+    tool_names = [tool['function']['name'] for tool in tools]
+    assert 'code_search' in tool_names
+    assert (
+        len([name for name in tool_names if name != 'code_search']) == len(tools) - 1
+    )  # Other default tools should still be present
+
+
+def test_code_search_tool():
+    """Test the code search tool definition."""
+    assert CodeSearchTool['type'] == 'function'
+    assert CodeSearchTool['function']['name'] == 'code_search'
+
+    # Check properties
+    properties = CodeSearchTool['function']['parameters']['properties']
+    assert 'command' in properties
+    assert 'repo_path' in properties
+    assert 'save_dir' in properties
+    assert 'extensions' in properties
+    assert 'embedding_model' in properties
+    assert 'batch_size' in properties
+    assert 'query' in properties
+    assert 'k' in properties
+
+    # Check command enum values
+    assert properties['command']['enum'] == ['initialize_code_search', 'search_code']
+
+    # Check required fields
+    assert 'command' in CodeSearchTool['function']['parameters']['required']
+
+    # Check conditional requirements
+    allOf = CodeSearchTool['function']['parameters']['allOf']
+    assert len(allOf) == 2
+
+    # Check initialize_code_search requirements
+    init_condition = next(
+        rule
+        for rule in allOf
+        if rule['if']['properties']['command']['const'] == 'initialize_code_search'
+    )
+    assert 'repo_path' in init_condition['then']['required']
+
+    # Check search_code requirements
+    search_condition = next(
+        rule
+        for rule in allOf
+        if rule['if']['properties']['command']['const'] == 'search_code'
+    )
+    assert 'query' in search_condition['then']['required']
 
 
 def test_cmd_run_tool():
@@ -157,11 +220,6 @@ def test_llm_based_file_edit_tool():
         'content',
     ]
 
-# todo:
-# def test_code_search_tool():
-
-# todo:
-# def test_response_to_actions_code_search():
 
 def test_str_replace_editor_tool():
     StrReplaceEditorTool = create_str_replace_editor_tool()
@@ -224,6 +282,219 @@ def test_browser_tool():
         BrowserTool['function']['parameters']['properties']['code']['type'] == 'string'
     )
     assert 'description' in BrowserTool['function']['parameters']['properties']['code']
+
+
+def test_response_to_actions_code_search():
+    """Test converting code search tool calls to actions."""
+    # Test initialize_code_search
+    mock_response = Mock()
+    mock_response.choices = [Mock()]
+    mock_response.choices[0].message = Mock()
+    mock_response.choices[0].message.content = 'Initializing code search'
+    mock_response.choices[0].message.tool_calls = [Mock()]
+    mock_response.choices[0].message.tool_calls[0].id = 'tool_call_1'
+    mock_response.choices[0].message.tool_calls[0].function = Mock()
+    mock_response.choices[0].message.tool_calls[0].function.name = 'code_search'
+    mock_response.choices[0].message.tool_calls[0].function.arguments = (
+        '{"command": "initialize_code_search", '
+        '"repo_path": "/path/to/repo", '
+        '"save_dir": "code_search_index", '
+        '"extensions": [".py", ".js"]}'
+    )
+
+    actions = response_to_actions(mock_response)
+    assert len(actions) == 1
+    assert isinstance(actions[0], InitializeCodeSearchAction)
+    assert actions[0].repo_path == '/path/to/repo'
+    assert actions[0].save_dir == 'code_search_index'
+    assert actions[0].extensions == ['.py', '.js']
+
+    # Test search_code
+    mock_response.choices[0].message.tool_calls[0].function.arguments = (
+        '{"command": "search_code", '
+        '"query": "function that adds numbers", '
+        '"save_dir": "code_search_index", '
+        '"k": 5}'
+    )
+
+    actions = response_to_actions(mock_response)
+    assert len(actions) == 1
+    assert isinstance(actions[0], SearchCodeAction)
+    assert actions[0].query == 'function that adds numbers'
+    assert actions[0].save_dir == 'code_search_index'
+    assert actions[0].k == 5
+
+    # Test missing required arguments
+    mock_response.choices[0].message.tool_calls[
+        0
+    ].function.arguments = '{"command": "initialize_code_search"}'
+    with pytest.raises(FunctionCallValidationError):
+        response_to_actions(mock_response)
+
+    mock_response.choices[0].message.tool_calls[
+        0
+    ].function.arguments = '{"command": "search_code"}'
+    with pytest.raises(FunctionCallValidationError):
+        response_to_actions(mock_response)
+
+    # Test invalid command
+    mock_response.choices[0].message.tool_calls[
+        0
+    ].function.arguments = '{"command": "invalid_command"}'
+    with pytest.raises(FunctionCallValidationError):
+        response_to_actions(mock_response)
+
+
+def test_code_search_integration(mock_state: State):
+    """Test code search integration in a complete workflow."""
+    # Mock LLM responses for code search
+    mock_response_init = Mock()
+    mock_response_init.id = 'mock_id_1'
+    mock_response_init.choices = [Mock()]
+    mock_response_init.choices[0].message = Mock()
+    mock_response_init.choices[0].message.content = 'Initializing code search'
+    mock_response_init.choices[0].message.tool_calls = [Mock()]
+    mock_response_init.choices[0].message.tool_calls[0].id = 'tool_call_1'
+    mock_response_init.choices[0].message.tool_calls[0].function = Mock()
+    mock_response_init.choices[0].message.tool_calls[0].function.name = 'code_search'
+    mock_response_init.choices[0].message.tool_calls[0].function.arguments = (
+        '{"command": "initialize_code_search", '
+        '"repo_path": "/workspace/test_repo", '
+        '"extensions": [".py"]}'
+    )
+
+    mock_response_search = Mock()
+    mock_response_search.id = 'mock_id_2'
+    mock_response_search.choices = [Mock()]
+    mock_response_search.choices[0].message = Mock()
+    mock_response_search.choices[0].message.content = 'Searching for code'
+    mock_response_search.choices[0].message.tool_calls = [Mock()]
+    mock_response_search.choices[0].message.tool_calls[0].id = 'tool_call_2'
+    mock_response_search.choices[0].message.tool_calls[0].function = Mock()
+    mock_response_search.choices[0].message.tool_calls[0].function.name = 'code_search'
+    mock_response_search.choices[0].message.tool_calls[0].function.arguments = (
+        '{"command": "search_code", ' '"query": "function to handle file operations"}'
+    )
+
+    # Create agent with mocked LLM
+    mock_config = Mock()
+    mock_config.model = 'mock_model'
+    llm = Mock()
+    llm.config = mock_config
+    llm.completion = Mock(side_effect=[mock_response_init, mock_response_search])
+    llm.is_function_calling_active = Mock(return_value=True)
+    llm.is_caching_prompt_active = Mock(return_value=False)
+    llm.vision_is_active = Mock(return_value=False)
+
+    config = AgentConfig(
+        codeact_enable_code_search=True, enable_prompt_extensions=False
+    )
+    agent = CodeActAgent(llm=llm, config=config)
+
+    # Test initialization step
+    mock_state.history = []
+    action = agent.step(mock_state)
+    assert isinstance(action, InitializeCodeSearchAction)
+    assert action.repo_path == '/workspace/test_repo'
+    assert action.extensions == ['.py']
+
+    # Add initialization observation
+    init_obs = CodeSearchInitializedObservation(
+        status='success',
+        message='Successfully initialized code search',
+        num_documents=10,
+    )
+    mock_state.history.extend([action, init_obs])
+
+    # Test search step
+    action = agent.step(mock_state)
+    assert isinstance(action, SearchCodeAction)
+    assert action.query == 'function to handle file operations'
+
+    # Add search observation
+    search_obs = CodeSearchResultsObservation(
+        status='success',
+        results=[
+            {
+                'path': 'utils/files.py',
+                'content': 'def safe_write(path: str, content: str):\n    """Safely write content to file."""',
+                'score': 0.95,
+            }
+        ],
+    )
+    mock_state.history.extend([action, search_obs])
+
+    # Verify the conversation history is properly formatted
+    messages = agent._get_messages(mock_state)
+    assert len(messages) > 0
+
+    # Check initialization message
+    init_message = next(
+        msg
+        for msg in messages
+        if isinstance(msg.content[0], TextContent)
+        and 'Successfully initialized code search' in msg.content[0].text
+    )
+    assert 'Number of documents indexed: 10' in init_message.content[0].text
+
+    # Check search results message
+    result_message = next(
+        msg
+        for msg in messages
+        if isinstance(msg.content[0], TextContent)
+        and 'Found the following relevant code' in msg.content[0].text
+    )
+    assert 'utils/files.py' in result_message.content[0].text
+    assert 'safe_write' in result_message.content[0].text
+    assert '0.95' in result_message.content[0].text
+
+
+def test_code_search_conversation_memory(agent: CodeActAgent):
+    """Test code search message processing in conversation memory."""
+    # Create a mock state
+    state = State()
+
+    # Test code search initialization observation
+    init_obs = CodeSearchInitializedObservation(
+        status='success',
+        message='Successfully initialized code search',
+        num_documents=10,
+    )
+    state.history.append(init_obs)
+
+    # Get messages
+    messages = agent._get_messages(state)
+    assert len(messages) > 0
+    # Find the message containing the initialization result
+    init_message = next(
+        msg
+        for msg in messages
+        if isinstance(msg.content[0], TextContent)
+        and 'Successfully initialized code search' in msg.content[0].text
+    )
+    assert 'Number of documents indexed: 10' in init_message.content[0].text
+
+    # Test code search results observation
+    search_obs = CodeSearchResultsObservation(
+        status='success',
+        results=[
+            {'path': 'test.py', 'content': 'def add(a, b): return a + b', 'score': 0.95}
+        ],
+    )
+    state.history.append(search_obs)
+
+    # Get messages
+    messages = agent._get_messages(state)
+    # Find the message containing the search results
+    result_message = next(
+        msg
+        for msg in messages
+        if isinstance(msg.content[0], TextContent)
+        and 'Found the following relevant code' in msg.content[0].text
+    )
+    assert 'test.py' in result_message.content[0].text
+    assert 'def add(a, b)' in result_message.content[0].text
+    assert '0.95' in result_message.content[0].text
 
 
 def test_response_to_actions_invalid_tool():

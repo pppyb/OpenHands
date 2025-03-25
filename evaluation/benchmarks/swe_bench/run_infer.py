@@ -195,6 +195,7 @@ def get_config(
         codeact_enable_jupyter=False,
         codeact_enable_browsing=RUN_WITH_BROWSING,
         codeact_enable_llm_editor=False,
+        codeact_enable_code_search=True,  # Enable code search tool
         condenser=metadata.condenser_config,
         enable_prompt_extensions=False,
     )
@@ -329,6 +330,28 @@ def initialize_runtime(
     assert_and_raise(
         obs.exit_code == 0 and 'testbed' in obs.content,
         f'Expected to find python interpreter from testbed, but got: {str(obs)}',
+    )
+
+    # Install code search dependencies if not already installed
+    action = CmdRunAction(command='pip install -q sentence-transformers faiss-cpu')
+    action.set_hard_timeout(600)
+    logger.info(action, extra={'msg_type': 'ACTION'})
+    obs = runtime.run_action(action)
+    logger.info(obs, extra={'msg_type': 'OBSERVATION'})
+    assert_and_raise(
+        obs.exit_code == 0,
+        f'Failed to install code search dependencies: {str(obs)}',
+    )
+
+    # Create code search index directory
+    action = CmdRunAction(command='mkdir -p /workspace/code_search_index')
+    action.set_hard_timeout(600)
+    logger.info(action, extra={'msg_type': 'ACTION'})
+    obs = runtime.run_action(action)
+    logger.info(obs, extra={'msg_type': 'OBSERVATION'})
+    assert_and_raise(
+        obs.exit_code == 0,
+        f'Failed to create code search index directory: {str(obs)}',
     )
 
     logger.info('-' * 30)

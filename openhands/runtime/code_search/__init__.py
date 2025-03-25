@@ -5,6 +5,6 @@ This package provides search engine functionality for OpenHands, including:
 - Code search using semantic search
 """
 
-from openhands.runtime.code_search.code_search import code_search
+from .code_search import CodeSearchRuntime
 
-__all__ = ['code_search']
+__all__ = ['CodeSearchRuntime']

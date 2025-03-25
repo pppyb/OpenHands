@@ -31,6 +31,7 @@ from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from uvicorn import run
 
+from openhands.core.config.code_search_config import CodeSearchConfig
 from openhands.core.exceptions import BrowserUnavailableException
 from openhands.core.logger import openhands_logger as logger
 from openhands.events.action import (
@@ -42,7 +43,10 @@ from openhands.events.action import (
     FileReadAction,
     FileWriteAction,
     IPythonRunCellAction,
-    CodeSearchAction,
+)
+from openhands.events.action.code_search import (
+    InitializeCodeSearchAction,
+    SearchCodeAction,
 )
 from openhands.events.event import FileEditSource, FileReadSource
 from openhands.events.observation import (
@@ -54,12 +58,14 @@ from openhands.events.observation import (
     IPythonRunCellObservation,
     Observation,
 )
+from openhands.events.observation.code_search import (
+    CodeSearchInitializedObservation,
+    CodeSearchResultsObservation,
+)
 from openhands.events.serialization import event_from_dict, event_to_dict
-from openhands.events.observation.code_search import CodeSearchObservation
-
-from openhands.runtime.code_search.code_search import code_search
 from openhands.runtime.browser import browse
 from openhands.runtime.browser.browser_env import BrowserEnv
+from openhands.runtime.code_search import CodeSearchRuntime
 from openhands.runtime.plugins import ALL_PLUGINS, JupyterPlugin, Plugin, VSCodePlugin
 from openhands.runtime.utils.bash import BashSession
 from openhands.runtime.utils.files import insert_lines, read_lines
@@ -185,6 +191,10 @@ class ActionExecutor:
             in ['true', '1', 'yes']
         )
         self.memory_monitor.start_monitoring()
+
+        # Initialize code search runtime
+        self.code_search_config = CodeSearchConfig()
+        self.code_search_runtime = CodeSearchRuntime(self.code_search_config)
 
     @property
     def initial_cwd(self):
@@ -508,11 +518,60 @@ class ActionExecutor:
     async def browse_interactive(self, action: BrowseInteractiveAction) -> Observation:
         await self._ensure_browser_ready()
         return await browse(action, self.browser)
-    
-    async def code_search(self, action: CodeSearchAction) -> Observation:
-        obs = await call_sync_from_async(code_search, action)
-        return obs
-    
+
+    async def initialize_code_search(
+        self, action: InitializeCodeSearchAction
+    ) -> Observation:
+        """Initialize code search for a repository."""
+        try:
+            # Create a new config instance for this request
+            config = CodeSearchConfig(
+                repo_path=action.repo_path,
+                save_dir=action.save_dir,
+                extensions=action.extensions,
+                embedding_model=action.embedding_model,
+                batch_size=action.batch_size,
+            )
+            runtime = CodeSearchRuntime(config)
+            result = runtime.initialize()
+
+            return CodeSearchInitializedObservation(
+                status=result['status'],
+                message=result['message'],
+                num_documents=result.get('num_documents'),
+            )
+        except Exception as e:
+            logger.error(f'Error initializing code search: {e}')
+            return CodeSearchInitializedObservation(
+                status='error', message=f'Failed to initialize code search: {str(e)}'
+            )
+
+    async def search_code(self, action: SearchCodeAction) -> Observation:
+        """Search code in an indexed repository."""
+        try:
+            # Create a new config instance for this request
+            config = CodeSearchConfig(save_dir=action.save_dir)
+            runtime = CodeSearchRuntime(config)
+
+            result = runtime.search(query=action.query, k=action.k)
+
+            if result['status'] == 'success':
+                return CodeSearchResultsObservation(
+                    status='success', results=result['results']
+                )
+            else:
+                return CodeSearchResultsObservation(
+                    status='error',
+                    message=result.get(
+                        'message', 'Unknown error occurred during code search'
+                    ),
+                )
+        except Exception as e:
+            logger.error(f'Error searching code: {e}')
+            return CodeSearchResultsObservation(
+                status='error', message=f'Failed to search code: {str(e)}'
+            )
+
     def close(self):
         self.memory_monitor.stop_monitoring()
         if self.bash_session is not None:

@@ -1,130 +1,174 @@
 # Code Search
 
-OpenHands provides a code search capability that allows agents to search through codebases using natural language queries. This guide explains how to configure and use the code search feature.
-
-## Overview
-
-The code search feature enables agents to:
-- Search through codebases using natural language queries
-- Find relevant code snippets, functions, and files
-- Understand code structure and implementation details
-- Navigate large codebases efficiently
-
-## How It Works
-
-The code search feature uses semantic search with embeddings to find relevant code based on natural language queries. It works by:
-
-1. **Indexing**: First, the codebase is indexed by creating embeddings for each file or code snippet
-2. **Searching**: When a query is made, it's converted to an embedding and compared with the indexed code
-3. **Ranking**: Results are ranked by relevance and returned with context
+OpenHands provides a powerful code search functionality that allows you to search through codebases using semantic search. This feature uses embeddings to find code snippets that are semantically related to your search query, even if they don't contain the exact keywords.
 
 ## Configuration
 
-### Configuration Setup
-
-The code search feature is configured through the `code_search` section in your `config.toml`:
-
-```toml
-[code_search]
-# Enable the code search feature
-enable_code_search = true
-
-# Set the embedding model to use
-embedding_model = "BAAI/bge-base-en-v1.5"
-
-# Set the default directory to save code search indices
-default_save_dir = ".code_search_index"
-
-# Set the default file extensions to include in code search
-default_extensions = [".py", ".js", ".ts", ".java", ".c", ".cpp", ".h", ".hpp"]
-
-# Set the default number of results to return
-default_results_count = 5
-```
-
-Or when using Docker, set the environment variables:
-```bash
-# Enable the code search feature
--e CODE_SEARCH_ENABLE_CODE_SEARCH=true
-
-# Set the embedding model to use
--e CODE_SEARCH_EMBEDDING_MODEL="BAAI/bge-base-en-v1.5"
-
-# Set the default directory to save code search indices
--e CODE_SEARCH_DEFAULT_SAVE_DIR=".code_search_index"
-
-# Set the default number of results to return
--e CODE_SEARCH_DEFAULT_RESULTS_COUNT=5
-```
-
-### Agent Configuration
-
-You also need to enable code search in the agent configuration:
+To enable code search in your agent, set `codeact_enable_code_search = true` in your configuration:
 
 ```toml
 [agent]
 codeact_enable_code_search = true
 ```
 
-Or when using Docker:
-```bash
--e AGENT_CODEACT_ENABLE_CODE_SEARCH=true
-```
+## Usage
 
-## Usage Example
+The code search functionality provides two main operations:
 
-When the code search feature is enabled, agents can use the `code_search` tool to search through codebases. For example:
+### 1. Initialize Code Search
+
+Before you can search code, you need to initialize the search index for your repository:
 
 ```python
-# The agent can make a tool call like this:
-{
-    "name": "code_search",
-    "arguments": {
-        "query": "function that handles HTTP requests",
-        "repo_path": "/path/to/repo",  # Optional if already indexed
-        "extensions": [".py", ".js"],  # Optional
-        "k": 5  # Optional, number of results
-    }
-}
+from openhands.events.action.code_search import InitializeCodeSearchAction
+from openhands.events.observation.code_search import CodeSearchInitializedObservation
+
+# Initialize code search for a repository
+action = InitializeCodeSearchAction(
+    repo_path="/path/to/your/repo",
+    save_dir="code_search_index",  # Optional, defaults to "code_search_index"
+    extensions=[".py", ".js"],     # Optional, filter by file extensions
+    embedding_model="BAAI/bge-base-en-v1.5",  # Optional, defaults to "BAAI/bge-base-en-v1.5"
+    batch_size=32                  # Optional, defaults to 32
+)
+
+# The observation will contain the initialization status
+observation = await agent.run_action(action)
+assert isinstance(observation, CodeSearchInitializedObservation)
+print(f"Status: {observation.status}")
+print(f"Message: {observation.message}")
+print(f"Number of documents indexed: {observation.num_documents}")
 ```
 
-The search results will be returned in a structured format that includes:
-- File path
-- Relevance score
-- Code snippet with context
+### 2. Search Code
+
+Once the index is initialized, you can search for code:
+
+```python
+from openhands.events.action.code_search import SearchCodeAction
+from openhands.events.observation.code_search import CodeSearchResultsObservation
+
+# Search for code
+action = SearchCodeAction(
+    query="function that adds two numbers",
+    save_dir="code_search_index",  # Optional, defaults to "code_search_index"
+    k=5                           # Optional, number of results to return
+)
+
+# The observation will contain the search results
+observation = await agent.run_action(action)
+assert isinstance(observation, CodeSearchResultsObservation)
+print(f"Status: {observation.status}")
+if observation.status == "success":
+    for result in observation.results:
+        print(f"\nFile: {result.path}")
+        print(f"Score: {result.score}")
+        print(f"Content:\n{result.content}")
+```
+
+## Implementation Details
+
+The code search functionality is implemented using:
+
+- [sentence-transformers](https://www.sbert.net/) for generating embeddings
+- [FAISS](https://github.com/facebookresearch/faiss) for efficient similarity search
+- [BAAI/bge-base-en-v1.5](https://huggingface.co/BAAI/bge-base-en-v1.5) as the default embedding model
+
+The search process works by:
+
+1. Converting code files into embeddings using the sentence transformer model
+2. Building a FAISS index for efficient similarity search
+3. Converting search queries into embeddings using the same model
+4. Finding the most similar code snippets using cosine similarity
+
+## Configuration Options
+
+The code search functionality can be configured through the `CodeSearchConfig` class:
+
+```python
+from openhands.core.config.code_search_config import CodeSearchConfig
+
+config = CodeSearchConfig(
+    repo_path="",                          # Path to the repository to search
+    save_dir="code_search_index",          # Directory to save the search index
+    extensions=None,                       # List of file extensions to include
+    embedding_model="BAAI/bge-base-en-v1.5", # Name or path of the embedding model
+    batch_size=32,                         # Batch size for embedding generation
+    top_k=5                                # Default number of results to return
+)
+```
 
 ## Best Practices
 
-1. **Query Formulation**
-   - Use natural language to describe what you're looking for
-   - Be specific about functionality, patterns, or concepts
-   - Include relevant technical terms when appropriate
+1. **Index Management**:
+   - Keep the index in a separate directory from your code
+   - Update the index when the codebase changes significantly
+   - Consider using different indices for different parts of your codebase
 
-2. **Repository Organization**
-   - Index repositories separately for better context
-   - Use file extensions to focus on relevant code
-   - Consider indexing only specific directories for large repositories
+2. **Search Queries**:
+   - Use natural language queries that describe what you're looking for
+   - Include relevant technical terms to improve search accuracy
+   - Be specific but not too verbose
 
-3. **Performance Considerations**
-   - Indexing large repositories can be memory-intensive
-   - The first search in a session may take longer due to model loading
-   - Consider pre-indexing repositories for frequently used codebases
+3. **Performance**:
+   - Use appropriate batch sizes based on your available memory
+   - Filter files by extension to reduce index size and improve search speed
+   - Consider using a smaller embedding model if speed is critical
 
-## Troubleshooting
+## Example Use Cases
 
-Common issues and solutions:
+1. **Finding Similar Code**:
+   ```python
+   # Search for similar implementations
+   action = SearchCodeAction(
+       query="function to parse JSON from file",
+       extensions=[".py", ".js"]
+   )
+   ```
 
-1. **Search Not Working**
-   - Verify `code_search.enable_code_search` is set to `true` in your config
-   - Confirm `agent.codeact_enable_code_search` is set to `true`
-   - Check that the required dependencies are installed
+2. **Finding Usage Examples**:
+   ```python
+   # Search for examples of using a specific API
+   action = SearchCodeAction(
+       query="example of using requests library to make POST request",
+       extensions=[".py"]
+   )
+   ```
 
-2. **Poor Search Results**
-   - Try reformulating your query to be more specific
-   - Check if the code you're looking for is in the indexed repository
-   - Consider using different file extensions to narrow the search
+3. **Finding Documentation**:
+   ```python
+   # Search for documentation about specific features
+   action = SearchCodeAction(
+       query="documentation about authentication configuration",
+       extensions=[".md", ".rst", ".txt"]
+   )
+   ```
 
-3. **Memory Issues**
-   - Large repositories may require significant memory for indexing
-   - Consider indexing smaller portions of the repository
-   - Use a smaller embedding model if memory is limited
+## Integration with Other Tools
+
+The code search functionality can be combined with other OpenHands tools:
+
+1. **With File Editor**:
+   ```python
+   # Search for code and then edit it
+   search_action = SearchCodeAction(query="function to validate email")
+   search_result = await agent.run_action(search_action)
+
+   if search_result.status == "success" and search_result.results:
+       edit_action = FileEditAction(
+           path=search_result.results[0].path,
+           content="# Add new validation logic here\n" + search_result.results[0].content
+       )
+       await agent.run_action(edit_action)
+   ```
+
+2. **With IPython**:
+   ```python
+   # Search for code and execute it in IPython
+   search_action = SearchCodeAction(query="example unittest setup")
+   search_result = await agent.run_action(search_action)
+
+   if search_result.status == "success" and search_result.results:
+       ipython_action = IPythonRunCellAction(code=search_result.results[0].content)
+       await agent.run_action(ipython_action)
+   ```
